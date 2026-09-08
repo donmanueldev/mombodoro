@@ -20,6 +20,7 @@ import androidx.compose.ui.window.Dialog
 import dev.momotombo.app.mombodoro.data.FocusTask
 import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
+import dev.momotombo.app.mombodoro.data.TimerSpeed
 import dev.momotombo.app.mombodoro.presentation.components.PomodoroContent
 import dev.momotombo.app.mombodoro.presentation.components.SettingsPanel
 import dev.momotombo.app.mombodoro.presentation.components.TasksPanel
@@ -35,12 +36,14 @@ fun PomodoroDesktopLayout(
     phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
+    speed: TimerSpeed,
     isShowSettingsDialog: Boolean,
     configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     tasks: List<FocusTask>,
     selectedTaskId: Long?,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
     onAddTask: (String) -> Unit,
     onSelectTask: (Long) -> Unit,
@@ -77,10 +80,12 @@ fun PomodoroDesktopLayout(
                     phaseTitle = phaseTitle,
                     isPlayPomodoro = isPlayPomodoro,
                     timerLeft = timerLeft,
+                    speed = speed,
                     configuration = configuration,
                     completedPomodoros = completedPomodoros,
                     selectedTaskTitle = selectedTask?.title,
                     onPlayPause = onPlayPause,
+                    onSpeedChange = onSpeedChange,
                     onPhaseChange = onPhaseChange,
                 )
             } else {
@@ -89,11 +94,13 @@ fun PomodoroDesktopLayout(
                     phaseTitle = phaseTitle,
                     isPlayPomodoro = isPlayPomodoro,
                     timerLeft = timerLeft,
+                    speed = speed,
                     configuration = configuration,
                     completedPomodoros = completedPomodoros,
                     selectedTaskTitle = selectedTask?.title,
                     tasksVisible = showTasksPanel,
                     onPlayPause = onPlayPause,
+                    onSpeedChange = onSpeedChange,
                     onPhaseChange = onPhaseChange,
                 )
             }
@@ -179,11 +186,13 @@ private fun WideWorkspace(
     phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
+    speed: TimerSpeed,
     configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     selectedTaskTitle: String?,
     tasksVisible: Boolean,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
 ) {
     BoxWithConstraints(
@@ -200,10 +209,12 @@ private fun WideWorkspace(
                 phaseTitle = phaseTitle,
                 isPlayPomodoro = isPlayPomodoro,
                 timerLeft = timerLeft,
+                speed = speed,
                 configuration = configuration,
                 completedPomodoros = completedPomodoros,
                 selectedTaskTitle = selectedTaskTitle,
                 onPlayPause = onPlayPause,
+                onSpeedChange = onSpeedChange,
                 onPhaseChange = onPhaseChange,
             )
         }
@@ -216,10 +227,12 @@ private fun CompactWorkspace(
     phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
+    speed: TimerSpeed,
     configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     selectedTaskTitle: String?,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
 ) {
     TimerWorkspace(
@@ -228,10 +241,12 @@ private fun CompactWorkspace(
         phaseTitle = phaseTitle,
         isPlayPomodoro = isPlayPomodoro,
         timerLeft = timerLeft,
+        speed = speed,
         configuration = configuration,
         completedPomodoros = completedPomodoros,
         selectedTaskTitle = selectedTaskTitle,
         onPlayPause = onPlayPause,
+        onSpeedChange = onSpeedChange,
         onPhaseChange = onPhaseChange,
     )
 }
@@ -243,10 +258,12 @@ private fun TimerWorkspace(
     phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
+    speed: TimerSpeed,
     configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     selectedTaskTitle: String?,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
 ) {
     BoxWithConstraints(modifier) {
@@ -265,7 +282,9 @@ private fun TimerWorkspace(
                 completedPomodoros = completedPomodoros,
                 totalPomodoros = configuration.cyclesBeforeLongBreak,
                 ringSize = ringSize,
+                speed = speed,
                 onPlayPause = onPlayPause,
+                onSpeedChange = onSpeedChange,
                 onPhaseChange = onPhaseChange,
             )
             Spacer(Modifier.height(22.dp))

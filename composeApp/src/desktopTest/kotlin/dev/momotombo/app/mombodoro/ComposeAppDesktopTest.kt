@@ -4,6 +4,7 @@ import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
 import dev.momotombo.app.mombodoro.data.PomodoroSession
 import dev.momotombo.app.mombodoro.data.TimerEvent
+import dev.momotombo.app.mombodoro.data.TimerSpeed
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -127,6 +128,34 @@ class ComposeAppDesktopTest {
 
         assertEquals(true, state.session?.isRunning)
         assertEquals(25 * 60 - 1, state.session?.remainingSeconds)
+    }
+
+    @Test
+    fun `fast-forward changes the interval without resetting the session`() {
+        val state = PomodoroTimerState()
+        state.selectFocusType(testConfiguration())
+
+        state.changeSpeed(TimerSpeed.FAST)
+
+        assertEquals(TimerSpeed.FAST, state.session?.speed)
+        assertEquals(25 * 60, state.session?.remainingSeconds)
+        assertEquals(false, state.session?.isRunning)
+    }
+
+    @Test
+    fun `menu-bar state command keeps all fields in a stable order`() {
+        val session = PomodoroSession.start(testConfiguration()).copy(
+            remainingSeconds = 42,
+            isRunning = true,
+        )
+
+        val command = MacMenuBarProtocol.updateCommand(session, "Preparar presentación")
+        val fields = command.split("\t")
+
+        assertEquals(listOf("state", "42", "1500", "RW5mb3F1ZQ==", "UHJlcGFyYXIgcHJlc2VudGFjacOzbg==", "1"), fields)
+        assertEquals("idle", MacMenuBarProtocol.updateCommand(null, null))
+        assertEquals(MacMenuBarAction.Hide, MacMenuBarProtocol.actionFrom("hide"))
+        assertEquals(null, MacMenuBarProtocol.actionFrom("unsupported"))
     }
 
     @Test

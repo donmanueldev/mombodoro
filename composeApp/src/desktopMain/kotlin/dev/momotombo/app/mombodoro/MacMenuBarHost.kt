@@ -14,6 +14,26 @@ import java.util.concurrent.TimeUnit
 
 enum class MacMenuBarAction { Toggle, Show, Hide, Exit }
 
+/** Line protocol shared with the native macOS status-bar host. */
+internal object MacMenuBarProtocol {
+    fun actionFrom(value: String): MacMenuBarAction? =
+        MacMenuBarAction.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+
+    fun updateCommand(session: PomodoroSession?, selectedTaskTitle: String?): String = when (session) {
+        null -> "idle"
+        else -> listOf(
+            "state",
+            session.remainingSeconds.toString(),
+            session.configuration.durationFor(session.phase).toString(),
+            session.phase.title.encode(),
+            selectedTaskTitle?.encode() ?: "-",
+            if (session.isRunning) "1" else "0",
+        ).joinToString("\t")
+    }
+
+    private fun String.encode(): String = Base64.getEncoder().encodeToString(toByteArray())
+}
+
 class MacMenuBarHost private constructor(private val process: Process) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val actionsChannel = Channel<MacMenuBarAction>(Channel.BUFFERED)
@@ -24,23 +44,14 @@ class MacMenuBarHost private constructor(private val process: Process) {
     init {
         scope.launch {
             process.inputStream.bufferedReader().forEachLine { line ->
-                MacMenuBarAction.entries.firstOrNull { it.name.equals(line, ignoreCase = true) }
+                MacMenuBarProtocol.actionFrom(line)
                     ?.let(actionsChannel::trySend)
             }
         }
     }
 
     fun update(session: PomodoroSession?, selectedTaskTitle: String?) {
-        if (session == null) {
-            send("idle")
-            return
-        }
-
-        send(
-            "state\t${session.remainingSeconds}\t${session.configuration.durationFor(session.phase)}\t" +
-                "${session.phase.title.encode()}\t${selectedTaskTitle?.encode() ?: "-"}\t" +
-                "${if (session.isRunning) 1 else 0}",
-        )
+        send(MacMenuBarProtocol.updateCommand(session, selectedTaskTitle))
     }
 
     fun close() {
@@ -57,8 +68,6 @@ class MacMenuBarHost private constructor(private val process: Process) {
             writer.flush()
         }
     }
-
-    private fun String.encode(): String = Base64.getEncoder().encodeToString(toByteArray())
 
     companion object {
         fun start(): MacMenuBarHost? {

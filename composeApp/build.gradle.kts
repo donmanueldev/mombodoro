@@ -1,16 +1,19 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 val macMenuBarHostSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarHost.swift")
+val macMenuBarProtocolSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarProtocol.swift")
 val macMenuBarHostBinary = layout.buildDirectory.file("MombodoroMenuBarHost")
 
 val compileMacMenuBarHost by tasks.registering(Exec::class) {
     onlyIf { System.getProperty("os.name") == "Mac OS X" }
     inputs.file(macMenuBarHostSource)
+    inputs.file(macMenuBarProtocolSource)
     outputs.file(macMenuBarHostBinary)
     commandLine(
         "xcrun",
         "swiftc",
         macMenuBarHostSource.asFile.absolutePath,
+        macMenuBarProtocolSource.asFile.absolutePath,
         "-framework",
         "Cocoa",
         "-o",

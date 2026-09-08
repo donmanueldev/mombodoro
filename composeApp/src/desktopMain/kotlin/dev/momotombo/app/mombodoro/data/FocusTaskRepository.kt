@@ -6,7 +6,14 @@ import java.nio.file.Paths
 import java.sql.DriverManager
 
 /** Almacenamiento local de las tareas de enfoque para la aplicación de escritorio. */
-class FocusTaskRepository private constructor(private val databasePath: Path) {
+interface FocusTaskStore {
+    fun loadAll(): List<FocusTask>
+    fun add(title: String): FocusTask
+    fun updateCompletion(id: Long, isCompleted: Boolean)
+    fun delete(id: Long)
+}
+
+class FocusTaskRepository private constructor(private val databasePath: Path) : FocusTaskStore {
 
     init {
         Class.forName("org.sqlite.JDBC")
@@ -27,7 +34,7 @@ class FocusTaskRepository private constructor(private val databasePath: Path) {
         }
     }
 
-    fun loadAll(): List<FocusTask> = connection().use { connection ->
+    override fun loadAll(): List<FocusTask> = connection().use { connection ->
         connection.prepareStatement(
             "SELECT id, title, is_completed FROM focus_tasks ORDER BY is_completed ASC, created_at ASC"
         ).use { statement ->
@@ -47,7 +54,7 @@ class FocusTaskRepository private constructor(private val databasePath: Path) {
         }
     }
 
-    fun add(title: String): FocusTask = connection().use { connection ->
+    override fun add(title: String): FocusTask = connection().use { connection ->
         connection.prepareStatement(
             "INSERT INTO focus_tasks (title, created_at) VALUES (?, ?)",
             java.sql.Statement.RETURN_GENERATED_KEYS,
@@ -62,7 +69,7 @@ class FocusTaskRepository private constructor(private val databasePath: Path) {
         }
     }
 
-    fun updateCompletion(id: Long, isCompleted: Boolean) {
+    override fun updateCompletion(id: Long, isCompleted: Boolean) {
         connection().use { connection ->
             connection.prepareStatement("UPDATE focus_tasks SET is_completed = ? WHERE id = ?").use { statement ->
                 statement.setInt(1, if (isCompleted) 1 else 0)
@@ -72,7 +79,7 @@ class FocusTaskRepository private constructor(private val databasePath: Path) {
         }
     }
 
-    fun delete(id: Long) {
+    override fun delete(id: Long) {
         connection().use { connection ->
             connection.prepareStatement("DELETE FROM focus_tasks WHERE id = ?").use { statement ->
                 statement.setLong(1, id)

@@ -2,6 +2,8 @@ package dev.momotombo.app.mombodoro.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -102,8 +104,8 @@ fun TasksPanel(
         if (tasks.isEmpty()) {
             EmptyTasks()
         } else {
-            Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                tasks.forEach { task ->
+            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(tasks, key = { it.id }) { task ->
                     TaskRow(
                         task = task,
                         isSelected = task.id == selectedTaskId,

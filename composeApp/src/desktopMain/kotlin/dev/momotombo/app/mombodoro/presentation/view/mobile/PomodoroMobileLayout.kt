@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
+import dev.momotombo.app.mombodoro.data.TimerSpeed
 import dev.momotombo.app.mombodoro.data.FocusTask
 import dev.momotombo.app.mombodoro.presentation.components.PomodoroContent
 import dev.momotombo.app.mombodoro.presentation.components.SettingsDialog
@@ -33,12 +34,14 @@ fun PomodoroMobileLayout(
     phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
+    speed: TimerSpeed,
     isShowSettingsDialog: Boolean,
     configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     tasks: List<FocusTask>,
     selectedTaskId: Long?,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
     onAddTask: (String) -> Unit,
     onSelectTask: (Long) -> Unit,
@@ -111,7 +114,9 @@ fun PomodoroMobileLayout(
                     completedPomodoros = completedPomodoros,
                     totalPomodoros = configuration.cyclesBeforeLongBreak,
                     ringSize = 280.dp,
+                    speed = speed,
                     onPlayPause = onPlayPause,
+                    onSpeedChange = onSpeedChange,
                     onPhaseChange = onPhaseChange,
                 )
             }

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.Pomodoro
+import dev.momotombo.app.mombodoro.data.TimerSpeed
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppMutedText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppOutline
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
@@ -54,7 +55,9 @@ fun PomodoroContent(
     completedPomodoros: Int,
     totalPomodoros: Int,
     ringSize: Dp,
+    speed: TimerSpeed,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
 ) {
     val appearance = pomodoro.appearance
@@ -98,7 +101,7 @@ fun PomodoroContent(
         }
         CycleProgress(completedPomodoros, totalPomodoros, appearance.accent)
         Spacer(Modifier.height(24.dp))
-        TimerControls(isPlayPomodoro, appearance.accent, onPlayPause)
+        TimerControls(isPlayPomodoro, appearance.accent, speed, onPlayPause, onSpeedChange)
     }
 }
 
@@ -148,7 +151,9 @@ private fun CycleProgress(completedPomodoros: Int, totalPomodoros: Int, accent: 
 private fun TimerControls(
     isRunning: Boolean,
     accent: Color,
+    speed: TimerSpeed,
     onPlayPause: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(
@@ -160,6 +165,19 @@ private fun TimerControls(
             Image(painterResource(if (isRunning) Res.drawable.ic_pause else Res.drawable.ic_play), if (isRunning) "Pausar temporizador" else "Iniciar temporizador")
             Spacer(Modifier.width(10.dp))
             Text(if (isRunning) "Pausar" else "Empezar", fontFamily = GetFontPoppinsSemiBold(), color = Color.White)
+        }
+        Button(
+            modifier = Modifier.height(58.dp),
+            onClick = {
+                onSpeedChange(if (speed == TimerSpeed.NORMAL) TimerSpeed.FAST else TimerSpeed.NORMAL)
+            },
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = AppOutline, contentColor = AppText),
+        ) {
+            Text(
+                if (speed == TimerSpeed.FAST) "Velocidad normal" else "Avance rápido",
+                fontFamily = GetFontPoppinsSemiBold(),
+            )
         }
     }
 }

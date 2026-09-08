@@ -7,6 +7,7 @@ import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
 import dev.momotombo.app.mombodoro.data.PomodoroSession
 import dev.momotombo.app.mombodoro.data.TimerEvent
+import dev.momotombo.app.mombodoro.data.TimerSpeed
 
 data class TimerNotification(
     val phase: Pomodoro,
@@ -44,6 +45,10 @@ class PomodoroTimerState {
     fun saveSettings(configuration: PomodoroConfiguration) {
         session = session?.restartWith(configuration)
         notification = null
+    }
+
+    fun changeSpeed(speed: TimerSpeed) {
+        session = session?.changeSpeed(speed)
     }
 
     fun switchPhase(phase: Pomodoro) {

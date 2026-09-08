@@ -1,13 +1,5 @@
 import Cocoa
 
-private struct TimerState {
-    let remainingSeconds: Int
-    let totalSeconds: Int
-    let phase: String
-    let taskTitle: String?
-    let isRunning: Bool
-}
-
 private final class TimerRingView: NSView {
     var progress: CGFloat = 1 { didSet { needsDisplay = true } }
 
@@ -215,49 +207,28 @@ final class MenuBarHost: NSObject, NSApplicationDelegate {
     }
 
     private func consume(_ line: String) {
-        let parts = line.split(separator: "\t", omittingEmptySubsequences: false)
-        if parts.count == 1, parts[0] == "idle" {
+        switch MenuBarProtocol.command(from: line) {
+        case .idle:
             showIdleStatus()
+        case .state(let state):
+            showActiveStatus(state)
+        case nil:
             return
         }
-        guard
-            parts.count == 6,
-            parts[0] == "state",
-            let remainingSeconds = Int(parts[1]),
-            let totalSeconds = Int(parts[2]),
-            let phase = decode(parts[3]),
-            let taskTitle = decodeOptional(parts[4])
-        else { return }
-
-        showActiveStatus(
-            TimerState(
-                remainingSeconds: remainingSeconds,
-                totalSeconds: totalSeconds,
-                phase: phase,
-                taskTitle: taskTitle,
-                isRunning: parts[5] == "1"
-            ))
     }
 
     private func showIdleStatus() {
         statusItem.button?.image = statusImage
         statusItem.button?.title = "--:--"
+        statusItem.button?.toolTip = "Mombodoro · Sin temporizador"
         popoverController.update(with: nil)
     }
 
     private func showActiveStatus(_ state: TimerState) {
         statusItem.button?.image = statusImage
         statusItem.button?.title = String(format: "%02d:%02d", state.remainingSeconds / 60, state.remainingSeconds % 60)
+        statusItem.button?.toolTip = MenuBarProtocol.tooltip(for: state)
         popoverController.update(with: state)
-    }
-
-    private func decode(_ value: Substring) -> String? {
-        guard let data = Data(base64Encoded: String(value)) else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    private func decodeOptional(_ value: Substring) -> String? {
-        value == "-" ? nil : decode(value)
     }
 
     private func emit(_ value: String) {
@@ -265,8 +236,13 @@ final class MenuBarHost: NSObject, NSApplicationDelegate {
     }
 }
 
-let application = NSApplication.shared
-application.setActivationPolicy(.accessory)
-let delegate = MenuBarHost()
-application.delegate = delegate
-application.run()
+@main
+struct MenuBarApplication {
+    static func main() {
+        let application = NSApplication.shared
+        application.setActivationPolicy(.accessory)
+        let delegate = MenuBarHost()
+        application.delegate = delegate
+        application.run()
+    }
+}

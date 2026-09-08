@@ -13,7 +13,10 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import dev.momotombo.app.mombodoro.data.TimerEvent
+import dev.momotombo.app.mombodoro.data.FocusTaskRepository
+import dev.momotombo.app.mombodoro.presentation.FocusTasksController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.mombo_app_icon
@@ -25,11 +28,16 @@ fun main() = application {
     val windowState = rememberWindowState(size = DpSize(1280.dp, 820.dp))
     val trayState = rememberTrayState()
     val timerState = remember { PomodoroTimerState() }
+    val taskController = remember { FocusTasksController() }
     var selectedTaskTitle by remember { mutableStateOf<String?>(null) }
     val macMenuBarHost = remember { if (System.getProperty("os.name") == "Mac OS X") MacMenuBarHost.start() else null }
 
     DisposableEffect(macMenuBarHost) {
         onDispose { macMenuBarHost?.close() }
+    }
+
+    LaunchedEffect(taskController) {
+        taskController.load(withContext(kotlinx.coroutines.Dispatchers.IO) { FocusTaskRepository.openDefault() })
     }
 
     LaunchedEffect(macMenuBarHost) {
@@ -49,10 +57,10 @@ fun main() = application {
         }
     }
 
-    LaunchedEffect(timerState.session?.isRunning) {
+    LaunchedEffect(timerState.session?.isRunning, timerState.session?.speed) {
         while (timerState.session?.isRunning == true) {
             val runningSession = timerState.session ?: break
-            delay(1_000.milliseconds)
+            delay(runningSession.speed.delayMillis.milliseconds)
             if (timerState.session?.isRunning != true) break
 
             val event = timerState.tick()
@@ -102,6 +110,7 @@ fun main() = application {
         }
         PomodoroApp(
             timerState = timerState,
+            taskController = taskController,
             onExit = ::exitApplication,
             onSelectedTaskTitleChange = { selectedTaskTitle = it },
         )

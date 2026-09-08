@@ -6,11 +6,10 @@ import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
-import dev.momotombo.app.mombodoro.data.FocusTask
-import dev.momotombo.app.mombodoro.data.FocusTaskRepository
 import dev.momotombo.app.mombodoro.presentation.components.CustomFocusDialog
 import dev.momotombo.app.mombodoro.presentation.components.FocusTypeSelector
 import dev.momotombo.app.mombodoro.presentation.components.NotificationAlert
+import dev.momotombo.app.mombodoro.presentation.FocusTasksController
 import dev.momotombo.app.mombodoro.presentation.view.desktop.PomodoroDesktopLayout
 import dev.momotombo.app.mombodoro.presentation.view.mobile.PomodoroMobileLayout
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
@@ -18,49 +17,22 @@ import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.appearance
 import dev.momotombo.app.mombodoro.utils.CustomDialog
 import dev.momotombo.app.mombodoro.utils.platform
+import kotlinx.coroutines.launch
 
 @Composable
 fun FrameWindowScope.PomodoroApp(
     timerState: PomodoroTimerState,
+    taskController: FocusTasksController,
     onExit: () -> Unit,
     onSelectedTaskTitleChange: (String?) -> Unit,
 ) {
     var isShowDialog by remember { mutableStateOf(false) }
     var isShowSettingsDialog by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
-    val taskRepository = remember { FocusTaskRepository.openDefault() }
-    val tasks = remember(taskRepository) {
-        mutableStateListOf<FocusTask>().also { persistedTasks ->
-            persistedTasks.addAll(taskRepository.loadAll())
-        }
-    }
-    var selectedTaskId by remember { mutableStateOf<Long?>(null) }
-    val selectedTaskTitle = tasks.firstOrNull { it.id == selectedTaskId }?.title
+    val taskScope = rememberCoroutineScope()
+    val selectedTaskTitle = taskController.tasks.firstOrNull { it.id == taskController.selectedTaskId }?.title
 
     SideEffect { onSelectedTaskTitleChange(selectedTaskTitle) }
-
-    fun addTask(title: String) {
-        val trimmedTitle = title.trim()
-        if (trimmedTitle.isEmpty()) return
-        val task = taskRepository.add(trimmedTitle)
-        tasks += task
-        selectedTaskId = task.id
-    }
-
-    fun toggleTask(id: Long) {
-        val index = tasks.indexOfFirst { it.id == id }
-        if (index >= 0) {
-            val updatedTask = tasks[index].copy(isCompleted = !tasks[index].isCompleted)
-            taskRepository.updateCompletion(updatedTask.id, updatedTask.isCompleted)
-            tasks[index] = updatedTask
-        }
-    }
-
-    fun deleteTask(id: Long) {
-        taskRepository.delete(id)
-        tasks.removeAll { it.id == id }
-        if (selectedTaskId == id) selectedTaskId = tasks.firstOrNull { !it.isCompleted }?.id
-    }
 
     fun selectFocusType(configuration: PomodoroConfiguration) {
         timerState.selectFocusType(configuration)
@@ -157,17 +129,19 @@ fun FrameWindowScope.PomodoroApp(
                     phaseTitle = layout.phaseTitle,
                     isPlayPomodoro = layout.isRunning,
                     timerLeft = layout.remainingSeconds,
+                    speed = layout.speed,
                     isShowSettingsDialog = isShowSettingsDialog,
                     configuration = layout.configuration,
                     completedPomodoros = layout.completedFocusSessions,
-                    tasks = tasks,
-                    selectedTaskId = selectedTaskId,
+                    tasks = taskController.tasks,
+                    selectedTaskId = taskController.selectedTaskId,
                     onPlayPause = { timerState.toggleRunning() },
+                    onSpeedChange = timerState::changeSpeed,
                     onPhaseChange = timerState::switchPhase,
-                    onAddTask = ::addTask,
-                    onSelectTask = { selectedTaskId = it },
-                    onToggleTask = ::toggleTask,
-                    onDeleteTask = ::deleteTask,
+                    onAddTask = { title -> taskScope.launch { taskController.add(title) } },
+                    onSelectTask = taskController::select,
+                    onToggleTask = { id -> taskScope.launch { taskController.toggleCompletion(id) } },
+                    onDeleteTask = { id -> taskScope.launch { taskController.delete(id) } },
                     onSettingsToggle = { isShowSettingsDialog = it },
                     onSaveSettings = onSaveSettings,
                     onBackToFocusSelector = ::showFocusTypeSelector,
@@ -178,17 +152,19 @@ fun FrameWindowScope.PomodoroApp(
                     phaseTitle = layout.phaseTitle,
                     isPlayPomodoro = layout.isRunning,
                     timerLeft = layout.remainingSeconds,
+                    speed = layout.speed,
                     isShowSettingsDialog = isShowSettingsDialog,
                     configuration = layout.configuration,
                     completedPomodoros = layout.completedFocusSessions,
-                    tasks = tasks,
-                    selectedTaskId = selectedTaskId,
+                    tasks = taskController.tasks,
+                    selectedTaskId = taskController.selectedTaskId,
                     onPlayPause = { timerState.toggleRunning() },
+                    onSpeedChange = timerState::changeSpeed,
                     onPhaseChange = timerState::switchPhase,
-                    onAddTask = ::addTask,
-                    onSelectTask = { selectedTaskId = it },
-                    onToggleTask = ::toggleTask,
-                    onDeleteTask = ::deleteTask,
+                    onAddTask = { title -> taskScope.launch { taskController.add(title) } },
+                    onSelectTask = taskController::select,
+                    onToggleTask = { id -> taskScope.launch { taskController.toggleCompletion(id) } },
+                    onDeleteTask = { id -> taskScope.launch { taskController.delete(id) } },
                     onSettingsToggle = { isShowSettingsDialog = it },
                     onSaveSettings = onSaveSettings,
                     onBackToFocusSelector = ::showFocusTypeSelector,
