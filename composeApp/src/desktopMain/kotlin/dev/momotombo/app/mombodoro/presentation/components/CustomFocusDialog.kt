@@ -13,7 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import dev.momotombo.app.mombodoro.data.Pomodoro
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
@@ -27,8 +28,8 @@ fun CustomFocusDialog(
     var longBreakTime by remember { mutableStateOf(15) }
     var cycles by remember { mutableStateOf(4) }
 
-    val backgroundColor = Pomodoro.FOCUS.backgroundColor
-    val textColor = Pomodoro.FOCUS.textColor
+    val backgroundColor = AppCanvas
+    val textColor = AppText
 
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
@@ -77,7 +78,7 @@ fun CustomFocusDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Ciclos antes de Long Break",
+                    title = "Ciclos antes del descanso largo",
                     value = cycles,
                     textColor = textColor,
                     onValueChange = { cycles = it },

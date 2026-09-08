@@ -18,7 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.momotombo.app.mombodoro.data.Pomodoro
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
@@ -26,17 +27,19 @@ import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 fun FocusTypeSelector(
     onSelectFocusType: (String, Int, Int, Int, Int) -> Unit
 ) {
-    val backgroundColor = Pomodoro.FOCUS.backgroundColor
-    val textColor = Pomodoro.FOCUS.textColor
+    val backgroundColor = AppCanvas
+    val textColor = AppText
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().background(backgroundColor),
+        contentAlignment = Alignment.Center,
     ) {
+        val contentWidth = minOf(maxWidth - 64.dp, 900.dp)
+        Column(
+            modifier = Modifier.width(contentWidth),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
         Text(
             text = "Selecciona un tipo de enfoque",
             fontFamily = GetFontPoppinsSemiBold(),
@@ -107,9 +110,7 @@ fun FocusTypeSelector(
             ),
             shape = RoundedCornerShape(8.dp),
             interactionSource = remember { MutableInteractionSource() },
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .padding(top = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
             Text(
                 text = "Personalizado",
@@ -118,6 +119,7 @@ fun FocusTypeSelector(
                 color = backgroundColor,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
+        }
         }
     }
 }
@@ -135,7 +137,7 @@ fun FocusTypeCard(
 ) {
     Surface(
         modifier = Modifier
-            .fillMaxWidth(0.8f)
+            .fillMaxWidth()
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
@@ -159,9 +161,9 @@ fun FocusTypeCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TimeInfoItem(label = "Focus", value = "$focusTime min", textColor = textColor)
-                TimeInfoItem(label = "Short Break", value = "$shortBreakTime min", textColor = textColor)
-                TimeInfoItem(label = "Long Break", value = "$longBreakTime min", textColor = textColor)
+                TimeInfoItem(label = "Enfoque", value = "$focusTime min", textColor = textColor)
+                TimeInfoItem(label = "Descanso corto", value = "$shortBreakTime min", textColor = textColor)
+                TimeInfoItem(label = "Descanso largo", value = "$longBreakTime min", textColor = textColor)
                 TimeInfoItem(label = "Ciclos", value = "$cycles", textColor = textColor)
             }
         }
