@@ -146,7 +146,7 @@ class ComposeAppDesktopTest {
         assertIs<TimerEvent.PhaseCompleted>(state.tick())
         assertEquals(Pomodoro.BREAK, state.session?.phase)
         assertEquals(false, state.session?.isRunning)
-        assertEquals("Tiempo completado · Focus · Pomodoro", state.notification?.title)
+        assertEquals("Tiempo completado · Enfoque · Pomodoro", state.notification?.title)
         assertEquals(null, state.tick())
     }
 

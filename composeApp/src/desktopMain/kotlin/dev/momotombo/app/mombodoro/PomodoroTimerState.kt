@@ -7,7 +7,6 @@ import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
 import dev.momotombo.app.mombodoro.data.PomodoroSession
 import dev.momotombo.app.mombodoro.data.TimerEvent
-import dev.momotombo.app.mombodoro.data.TimerSpeed
 
 data class TimerNotification(
     val phase: Pomodoro,
@@ -45,10 +44,6 @@ class PomodoroTimerState {
     fun saveSettings(configuration: PomodoroConfiguration) {
         session = session?.restartWith(configuration)
         notification = null
-    }
-
-    fun changeSpeed(speed: TimerSpeed) {
-        session = session?.copy(speed = speed)
     }
 
     fun switchPhase(phase: Pomodoro) {
@@ -90,4 +85,4 @@ internal fun TimerEvent.toNotification(configuration: PomodoroConfiguration): Ti
 }
 
 internal fun Pomodoro.displayTitle(configuration: PomodoroConfiguration): String =
-    if (this == Pomodoro.FOCUS) "Focus · ${configuration.name}" else title
+    if (this == Pomodoro.FOCUS) "Enfoque · ${configuration.name}" else title

@@ -22,11 +22,6 @@ data class PomodoroConfiguration(
     }
 }
 
-enum class TimerSpeed(val delayMillis: Long) {
-    NORMAL(1_000L),
-    FAST(300L),
-}
-
 sealed interface TimerEvent {
     data class TimeWarning(val phase: Pomodoro, val secondsRemaining: Int) : TimerEvent
     data class PhaseCompleted(val phase: Pomodoro) : TimerEvent
@@ -43,7 +38,6 @@ data class PomodoroSession(
     val remainingSeconds: Int,
     val completedFocusSessions: Int,
     val isRunning: Boolean,
-    val speed: TimerSpeed = TimerSpeed.NORMAL,
 ) {
     companion object {
         fun start(configuration: PomodoroConfiguration): PomodoroSession = PomodoroSession(
@@ -56,13 +50,9 @@ data class PomodoroSession(
     }
 
     val phaseTitle: String
-        get() = if (phase == Pomodoro.FOCUS) "Focus · ${configuration.name}" else phase.title
+        get() = if (phase == Pomodoro.FOCUS) "Enfoque · ${configuration.name}" else phase.title
 
     fun toggleRunning(): PomodoroSession = copy(isRunning = !isRunning)
-
-    fun toggleSpeed(): PomodoroSession = copy(
-        speed = if (speed == TimerSpeed.NORMAL) TimerSpeed.FAST else TimerSpeed.NORMAL
-    )
 
     fun restartWith(configuration: PomodoroConfiguration): PomodoroSession = start(configuration)
 
