@@ -2,15 +2,13 @@ package dev.momotombo.app.mombodoro.presentation.components
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
-/**
- * Componente para mostrar una notificación como un AlertDialog
- */
 @Composable
 fun NotificationAlert(
     isVisible: Boolean,
@@ -18,6 +16,7 @@ fun NotificationAlert(
     message: String,
     backgroundColor: Color,
     textColor: Color,
+    accentColor: Color,
     onDismiss: () -> Unit
 ) {
     if (isVisible) {
@@ -43,12 +42,13 @@ fun NotificationAlert(
                 Button(
                     onClick = {
                         onDismiss()
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                 ) {
                     Text(
                         text = "Aceptar",
                         fontFamily = GetFontPoppinsMedium(),
-                        color = backgroundColor
+                        color = Color.White,
                     )
                 }
             },
