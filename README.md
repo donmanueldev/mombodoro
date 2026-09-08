@@ -7,10 +7,14 @@
 | <img src="docs/1.png" width="300" /> | <img src="docs/2.png" width="300" /> |
 | <img src="docs/3.png" width="300" /> | <img src="docs/4.png" width="300" /> |
 
-## App Feature 
-- Setting the time speed
-- Stop and pause buttons
-- Theme that adapts to the type of pomodoro
+## Features
+
+- Preset and custom focus sessions.
+- Pause, resume, and fast-forward timer controls.
+- Short and long breaks with configurable cycles.
+- Editable durations; saving settings restarts the session in Focus.
+- In-app alerts at 5 and 3 minutes, plus a completion alert.
+- A theme that adapts to the active phase.
 
 ## Todo List
 - [x] Added long break feature
