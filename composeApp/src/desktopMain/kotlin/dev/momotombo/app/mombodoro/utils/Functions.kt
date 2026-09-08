@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -20,6 +22,9 @@ import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_close
+import pomodoro.composeapp.generated.resources.mombo_app_icon
+import java.awt.Desktop
+import java.net.URI
 
 @Composable
 fun CustomDialog(
@@ -33,25 +38,27 @@ fun CustomDialog(
     ) {
         Surface(
             modifier = modifier
-                .width(280.dp)
+                .width(420.dp)
                 .wrapContentHeight(),
             color = backgroundColor,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(20.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        modifier = Modifier.weight(1f),
                         text = "Acerca de",
                         fontSize = 16.sp,
                         fontFamily = GetFontPoppinsSemiBold(),
-                        color = textColor
+                        color = textColor,
+                        modifier = Modifier.weight(1f),
                     )
 
                     Image(
@@ -62,28 +69,46 @@ fun CustomDialog(
                             },
                         painter = painterResource(Res.drawable.ic_close),
                         colorFilter = ColorFilter.tint(color = Color.Black.copy(alpha = 0.5f)),
-                        contentDescription = ""
+                        contentDescription = "Cerrar",
                     )
                 }
 
                 HorizontalDivider(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp)
-                        .fillMaxWidth(),
+                    modifier = Modifier.padding(vertical = 18.dp).fillMaxWidth(),
                     thickness = 1.dp,
                     color = Color(0xFF471515).copy(alpha = 0.1f)
                 )
 
-                ContentAboutApp(
-                    title = "Desarrollador",
-                    content = "Momotombo Devs",
-                    textColor = textColor
+                Image(
+                    painter = painterResource(Res.drawable.mombo_app_icon),
+                    contentDescription = "Logo de Mombodoro",
+                    modifier = Modifier.size(76.dp),
                 )
-
-                ContentAboutApp(
-                    title = "Versión",
-                    content = "1.0.0",
-                    textColor = textColor
+                Text(
+                    text = "Mombodoro",
+                    modifier = Modifier.padding(top = 14.dp),
+                    color = textColor,
+                    fontFamily = GetFontPoppinsSemiBold(),
+                    fontSize = 24.sp,
+                )
+                Text(
+                    text = "Un temporizador de enfoque simple para trabajar con intención, descansar a tiempo y volver a lo importante.",
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = textColor.copy(alpha = 0.72f),
+                    fontFamily = GetFontPoppinsMedium(),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp,
+                )
+                Spacer(Modifier.height(20.dp))
+                AboutLink("Proyecto de Mombodoro", "https://github.com/donmanueldev/PomodoroKT", textColor)
+                AboutLink("Momotombo Dev", "https://momotombo.dev/", textColor)
+                Text(
+                    text = "Versión 1.0.0",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = textColor.copy(alpha = 0.5f),
+                    fontFamily = GetFontPoppinsMedium(),
+                    fontSize = 11.sp,
                 )
             }
         }
@@ -91,28 +116,21 @@ fun CustomDialog(
 }
 
 @Composable
-private fun ContentAboutApp(
-    modifier: Modifier = Modifier,
-    title: String,
-    content: String,
-    textColor: Color
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = title,
-            fontFamily = GetFontPoppinsMedium(),
-            fontSize = 12.sp,
-            color = textColor
-        )
+private fun AboutLink(label: String, url: String, textColor: Color) {
+    Text(
+        text = label,
+        modifier = Modifier.padding(vertical = 6.dp).clickable { openExternalUrl(url) },
+        color = textColor,
+        fontFamily = GetFontPoppinsSemiBold(),
+        fontSize = 13.sp,
+        textDecoration = TextDecoration.Underline,
+    )
+}
 
-        Text(
-            text = content,
-            fontFamily = GetFontPoppinsMedium(),
-            fontSize = 10.sp,
-            color = textColor
-        )
+private fun openExternalUrl(url: String) {
+    runCatching {
+        if (Desktop.isDesktopSupported()) {
+            Desktop.getDesktop().browse(URI(url))
+        }
     }
 }

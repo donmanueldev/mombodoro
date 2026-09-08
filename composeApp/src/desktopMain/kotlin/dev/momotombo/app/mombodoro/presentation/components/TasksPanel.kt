@@ -1,12 +1,8 @@
 package dev.momotombo.app.mombodoro.presentation.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -30,9 +26,13 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.FocusTask
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppMutedText
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppOutline
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppSurface
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
@@ -40,109 +40,114 @@ import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 fun TasksPanel(
     tasks: List<FocusTask>,
     selectedTaskId: Long?,
-    textColor: Color,
-    surfaceColor: Color,
     onAddTask: (String) -> Unit,
     onSelectTask: (Long) -> Unit,
     onToggleTask: (Long) -> Unit,
     onDeleteTask: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onClose: (() -> Unit)? = null,
 ) {
     var draft by rememberSaveable { mutableStateOf("") }
+
     fun submitTask() {
-        if (draft.isBlank()) return
-        onAddTask(draft)
-        draft = ""
+        val title = draft.trim()
+        if (title.isNotEmpty()) {
+            onAddTask(title)
+            draft = ""
+        }
     }
 
-    Surface(
-        modifier = modifier.widthIn(max = 360.dp),
-        color = surfaceColor.copy(alpha = 0.78f),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Tareas", fontFamily = GetFontPoppinsSemiBold(), color = textColor)
-            HorizontalDivider(color = textColor.copy(alpha = 0.35f))
-
-            tasks.forEach { task ->
-                TaskRow(
-                    task = task,
-                    isSelected = task.id == selectedTaskId,
-                    textColor = textColor,
-                    onSelect = { onSelectTask(task.id) },
-                    onToggle = { onToggleTask(task.id) },
-                    onDelete = { onDeleteTask(task.id) },
-                )
+    Column(modifier = modifier.padding(vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Tareas", color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 22.sp)
+                Text("Elige una para concentrarte", color = AppMutedText, fontFamily = GetFontPoppinsMedium(), fontSize = 13.sp)
             }
-
-            OutlinedTextField(
-                value = draft,
-                onValueChange = { draft = it },
-                singleLine = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { submitTask() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onPreviewKeyEvent { event ->
-                        if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
-                            submitTask()
-                            true
-                        } else {
-                            false
-                        }
-                    },
-                label = { Text("¿En qué vas a trabajar?") },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = textColor,
-                    unfocusedTextColor = textColor,
-                    focusedBorderColor = textColor,
-                    unfocusedBorderColor = textColor.copy(alpha = 0.55f),
-                    focusedLabelColor = textColor,
-                    unfocusedLabelColor = textColor.copy(alpha = 0.75f),
-                ),
-            )
-            Button(
-                onClick = {
+            if (onClose != null) {
+                TextButton(onClick = onClose) { Text("Cerrar") }
+            }
+        }
+        Spacer(Modifier.height(18.dp))
+        OutlinedTextField(
+            value = draft,
+            onValueChange = { draft = it },
+            modifier = Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
+                if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
                     submitTask()
-                },
-                enabled = draft.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = surfaceColor,
-                ),
-            ) { Text("+ Agregar tarea", fontFamily = GetFontPoppinsSemiBold()) }
+                    true
+                } else {
+                    false
+                }
+            },
+            label = { Text("Nueva tarea") },
+            placeholder = { Text("¿En qué vas a trabajar?") },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = AppText,
+                unfocusedTextColor = AppText,
+                focusedBorderColor = AppText,
+                unfocusedBorderColor = AppOutline,
+                focusedLabelColor = AppText,
+                unfocusedLabelColor = AppMutedText,
+            ),
+        )
+        Button(
+            onClick = ::submitTask,
+            enabled = draft.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = AppText, contentColor = Color.White),
+            shape = RoundedCornerShape(12.dp),
+        ) { Text("Añadir tarea", fontFamily = GetFontPoppinsSemiBold()) }
+        HorizontalDivider(Modifier.padding(vertical = 20.dp), color = AppOutline)
+        if (tasks.isEmpty()) {
+            EmptyTasks()
+        } else {
+            Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                tasks.forEach { task ->
+                    TaskRow(
+                        task = task,
+                        isSelected = task.id == selectedTaskId,
+                        onSelect = { onSelectTask(task.id) },
+                        onToggle = { onToggleTask(task.id) },
+                        onDelete = { onDeleteTask(task.id) },
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun TaskRow(
-    task: FocusTask,
-    isSelected: Boolean,
-    textColor: Color,
-    onSelect: () -> Unit,
-    onToggle: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun EmptyTasks() {
+    Surface(color = AppSurface, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, AppOutline)) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Aún no hay tareas", color = AppText, fontFamily = GetFontPoppinsSemiBold())
+            Text("Añade una arriba y selecciónala para empezar.", modifier = Modifier.padding(top = 6.dp), color = AppMutedText, fontFamily = GetFontPoppinsMedium(), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun TaskRow(task: FocusTask, isSelected: Boolean, onSelect: () -> Unit, onToggle: () -> Unit, onDelete: () -> Unit) {
     Surface(
-        color = if (isSelected) textColor.copy(alpha = 0.18f) else Color.Transparent,
-        shape = RoundedCornerShape(10.dp),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
+        color = if (isSelected) Color(0xFFF8E9E5) else Color.Transparent,
+        shape = RoundedCornerShape(12.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = task.title,
-                modifier = Modifier.weight(1f),
-                color = textColor,
-                fontFamily = GetFontPoppinsMedium(),
-                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-            )
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    task.title,
+                    color = AppText,
+                    fontFamily = GetFontPoppinsMedium(),
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                )
+                if (isSelected && !task.isCompleted) {
+                    Text("Tarea seleccionada", color = Color(0xFFC85B4D), fontFamily = GetFontPoppinsMedium(), fontSize = 11.sp)
+                }
+            }
             TextButton(onClick = onToggle) { Text(if (task.isCompleted) "Reabrir" else "Hecha") }
-            TextButton(onClick = onDelete) { Text("×") }
+            TextButton(onClick = onDelete) { Text("Eliminar") }
         }
     }
 }
