@@ -17,10 +17,11 @@ import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
 import dev.momotombo.app.mombodoro.data.FocusTask
-import dev.momotombo.app.mombodoro.data.TimerSpeed
 import dev.momotombo.app.mombodoro.presentation.components.PomodoroContent
 import dev.momotombo.app.mombodoro.presentation.components.SettingsDialog
 import dev.momotombo.app.mombodoro.presentation.components.TasksPanel
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
@@ -32,20 +33,17 @@ fun PomodoroMobileLayout(
     phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
-    speedTime: TimerSpeed,
     isShowSettingsDialog: Boolean,
     configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     tasks: List<FocusTask>,
     selectedTaskId: Long?,
     onPlayPause: (Boolean) -> Unit,
-    onSpeedChange: (TimerSpeed) -> Unit,
     onPhaseChange: (Pomodoro) -> Unit,
     onAddTask: (String) -> Unit,
     onSelectTask: (Long) -> Unit,
     onToggleTask: (Long) -> Unit,
     onDeleteTask: (Long) -> Unit,
-    onAbout: () -> Unit,
     onSettingsToggle: (Boolean) -> Unit,
     onSaveSettings: (PomodoroConfiguration) -> Unit,
     onBackToFocusSelector: () -> Unit = {}
@@ -53,7 +51,7 @@ fun PomodoroMobileLayout(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(pomodoro.backgroundColor)
+            .background(AppCanvas)
     ) {
         Row(
             modifier = Modifier
@@ -69,8 +67,8 @@ fun PomodoroMobileLayout(
                         interactionSource = remember { MutableInteractionSource() }
                     ) { onSettingsToggle(true) },
                 painter = painterResource(Res.drawable.ic_settings),
-                colorFilter = ColorFilter.tint(pomodoro.textColor.copy(alpha = 0.7f)),
-                contentDescription = "Settings"
+                colorFilter = ColorFilter.tint(AppText.copy(alpha = 0.7f)),
+                contentDescription = "Ajustes"
             )
         }
 
@@ -83,7 +81,7 @@ fun PomodoroMobileLayout(
                 text = "Cambiar tipo",
                 fontFamily = GetFontPoppinsMedium(),
                 fontSize = 14.sp,
-                color = pomodoro.textColor.copy(alpha = 0.7f),
+                color = AppText.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .clickable(
@@ -109,20 +107,17 @@ fun PomodoroMobileLayout(
                     phaseTitle = phaseTitle,
                     isPlayPomodoro = isPlayPomodoro,
                     timerLeft = timerLeft,
-                    speedTime = speedTime,
+                    totalSeconds = configuration.durationFor(pomodoro),
                     completedPomodoros = completedPomodoros,
                     totalPomodoros = configuration.cyclesBeforeLongBreak,
+                    ringSize = 280.dp,
                     onPlayPause = onPlayPause,
-                    onSpeedChange = onSpeedChange,
                     onPhaseChange = onPhaseChange,
-                    onDialogToggle = { onAbout() }
                 )
             }
             TasksPanel(
                 tasks = tasks,
                 selectedTaskId = selectedTaskId,
-                textColor = pomodoro.textColor,
-                surfaceColor = pomodoro.buttonColorSecond,
                 onAddTask = onAddTask,
                 onSelectTask = onSelectTask,
                 onToggleTask = onToggleTask,
@@ -134,8 +129,8 @@ fun PomodoroMobileLayout(
         if (isShowSettingsDialog) {
             SettingsDialog(
                 configuration = configuration,
-                textColor = pomodoro.textColor,
-                backgroundColor = pomodoro.backgroundColor,
+                textColor = AppText,
+                backgroundColor = AppCanvas,
                 onCloseDialog = { onSettingsToggle(false) },
                 onSaveSettings = onSaveSettings,
             )
