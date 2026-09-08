@@ -8,15 +8,18 @@ const site = {
 const faq = [
   {
     question: "¿Qué es Mombodoro?",
-    answer: "Es una aplicación de escritorio para organizar sesiones de enfoque y descanso con un temporizador configurable.",
+    answer:
+      "Es una aplicación de escritorio para organizar sesiones de enfoque y descanso con un temporizador configurable.",
   },
   {
     question: "¿Puedo personalizar los ciclos?",
-    answer: "Sí. Puedes ajustar la duración del enfoque, los descansos y la cantidad de ciclos antes de un descanso largo.",
+    answer:
+      "Sí. Puedes ajustar la duración del enfoque, los descansos y la cantidad de ciclos antes de un descanso largo.",
   },
   {
     question: "¿Qué ocurre al terminar una sesión?",
-    answer: "Mombodoro muestra un aviso y puede enviar una notificación del sistema para indicar el siguiente momento del ciclo.",
+    answer:
+      "Mombodoro muestra un aviso y puede enviar una notificación del sistema para indicar el siguiente momento del ciclo.",
   },
 ];
 
@@ -55,7 +58,8 @@ function setMetadata() {
         alternateName: site.alternateName,
         applicationCategory: "ProductivityApplication",
         operatingSystem: "macOS",
-        description: "Temporizador de enfoque para macOS con ciclos configurables, tareas y avisos discretos.",
+        description:
+          "Temporizador de enfoque para macOS con ciclos configurables, tareas y avisos discretos.",
         ...(url ? { url: url.href } : {}),
       },
       {
