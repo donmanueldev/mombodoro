@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ff7c7c" />
+    <meta name="description" content="Mombodoro es un temporizador de enfoque para macOS con tareas, ciclos configurables y avisos discretos." />
+    <meta name="keywords" content="Mombodoro, Momotombo, temporizador Pomodoro para macOS, enfoque, productividad" />
+    <meta name="application-name" content="Mombodoro" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="/" data-canonical />
+    <link rel="icon" href="assets/mombodoro-mark.svg" type="image/svg+xml" />
+    <link rel="preload" as="image" href="assets/hourglass-diorama.webp" fetchpriority="high" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:title" content="Mombodoro — Haz espacio para lo importante" />
+    <meta property="og:site_name" content="Mombodoro" />
+    <meta property="og:description" content="Un temporizador de enfoque tranquilo para tu escritorio." />
+    <meta property="og:image" content="assets/hourglass-diorama.webp" />
+    <meta property="og:url" content="" data-og-url />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mombodoro — Haz espacio para lo importante" />
+    <meta name="twitter:description" content="Un temporizador de enfoque tranquilo para tu escritorio." />
+    <meta name="twitter:image" content="assets/hourglass-diorama.webp" />
+    <title>Mombodoro — Temporizador de enfoque para macOS</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="application/ld+json" id="structured-data"></script>
+    <script src="main.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <header class="site-header">
+      <a class="brand" href="#inicio" aria-label="Mombodoro, inicio"><img src="assets/mombodoro-mark.svg" width="36" height="36" alt="" /><span>Mombodoro</span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation"><span class="sr-only">Abrir menú</span><span></span><span></span></button>
+      <nav id="site-navigation" class="site-nav" aria-label="Principal">
+        <a href="#como-funciona">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#preguntas">Preguntas</a><a class="button button--small download-link" href="#descargar">Descargar para macOS</a>
+      </nav>
+    </header>
+    <main id="contenido">
+      <section id="inicio" class="hero section">
+        <div class="hero__copy"><h1>Haz espacio<br />para lo importante.</h1><p>Un temporizador de enfoque tranquilo para tu escritorio.</p><a class="button download-link" href="#descargar">Descargar para macOS <span aria-hidden="true">↓</span></a><p class="availability" data-download-status aria-live="polite">Disponible próximamente.</p></div>
+        <figure class="hero__media"><img src="assets/hourglass-diorama.webp" width="1536" height="1024" fetchpriority="high" alt="Reloj de arena coral con una esfera tomate y un paisaje sereno" /></figure>
+      </section>
+      <section id="como-funciona" class="product section">
+        <div class="product__copy"><p class="section-number" aria-hidden="true">01</p><h2>Tu ritmo,<br />a la vista.</h2><p>Organiza una tarea, elige tus tiempos y empieza. Mombodoro se queda cerca sin llenar tu escritorio de ruido.</p></div>
+        <div class="app-window" aria-label="Vista previa de Mombodoro">
+          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span><b>Mombodoro</b></div>
+          <div class="app-screen">
+            <section class="task-panel" aria-label="Tareas de ejemplo"><div class="panel-heading"><strong>Mis tareas</strong><button type="button" data-add-task aria-label="Añadir tarea">+</button></div><label class="task-row"><input type="checkbox" checked /><span>Planificar el proyecto</span></label><label class="task-row"><input type="checkbox" /><span>Revisar diseño</span></label><label class="task-row"><input type="checkbox" /><span>Escribir informe</span></label></section>
+            <section class="focus-panel" aria-label="Temporizador de ejemplo"><div class="timer-dial"><span>Enfoque</span><strong data-timer>25:00</strong></div><button class="button button--timer" type="button" data-timer-toggle>Iniciar</button><small data-cycle-status>Primer ciclo de cuatro</small></section>
+            <section class="settings-panel" aria-label="Ciclos configurables"><strong>Ciclos</strong><dl><dt>Enfoque</dt><dd>25 min</dd><dt>Descanso corto</dt><dd>5 min</dd><dt>Descanso largo</dt><dd>15 min</dd></dl><label class="notification-toggle"><span>Avisos</span><input type="checkbox" checked /><i></i></label></section>
+          </div>
+        </div>
+      </section>
+      <section id="funciones" class="features section" aria-labelledby="features-title">
+        <h2 id="features-title" class="sr-only">Funciones principales</h2>
+        <article><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="2" /><path d="M8 3h8v3H8zM8 11l1.5 1.5 3-3M14 11h2M8 16l1.5 1.5 3-3M14 16h2" /></svg><h3>Tareas claras</h3><p>Lo que toca ahora, en un solo lugar.</p></article>
+        <article><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" /><circle cx="12" cy="12" r="4.5" /></svg><h3>Ciclos configurables</h3><p>Ajusta el enfoque y los descansos a tu ritmo.</p></article>
+        <article><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.5 16.5h11l-1.4-2.3v-3.8a4.1 4.1 0 0 0-8.2 0v3.8zM10 19h4" /></svg><h3>Avisos discretos</h3><p>Te acompañan sin interrumpir.</p></article>
+      </section>
+      <section id="descargar" class="download-band"><div><h2>Menos ruido.<br />Más enfoque.</h2><a class="button button--dark download-link" href="#descargar">Descargar para macOS <span aria-hidden="true">↓</span></a><p class="availability availability--dark" data-download-status aria-live="polite">Disponible próximamente.</p></div></section>
+      <section id="preguntas" class="faq section" aria-labelledby="faq-title">
+        <div class="faq__heading"><p class="section-number" aria-hidden="true">02</p><h2 id="faq-title">Preguntas frecuentes</h2></div>
+        <div class="faq__items"><details><summary>¿Qué es Mombodoro?</summary><p>Es una aplicación de escritorio para organizar sesiones de enfoque y descanso con un temporizador configurable.</p></details><details><summary>¿Puedo personalizar los ciclos?</summary><p>Sí. Puedes ajustar la duración del enfoque, los descansos y la cantidad de ciclos antes de un descanso largo.</p></details><details><summary>¿Qué ocurre al terminar una sesión?</summary><p>Mombodoro muestra un aviso y puede enviar una notificación del sistema para indicar el siguiente momento del ciclo.</p></details></div>
+      </section>
+    </main>
+    <footer class="site-footer"><a class="brand" href="#inicio"><img src="assets/mombodoro-mark.svg" width="30" height="30" alt="" /><span>Mombodoro</span></a><p>Un espacio tranquilo para tu tiempo.</p><nav class="footer-links" aria-label="Información"><a href="pomodoro.html">Qué es Pomodoro</a><a href="privacidad.html">Privacidad</a><a href="terminos.html">Términos</a><a href="#inicio">Volver arriba <span aria-hidden="true">↑</span></a></nav></footer>
+  </body>
+</html>
