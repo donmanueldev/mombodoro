@@ -24,7 +24,15 @@ import pomodoro.composeapp.generated.resources.mombo_status_icon
 import java.awt.Dimension
 import kotlin.time.Duration.Companion.milliseconds
 
-fun main() = application {
+fun main() {
+    if (System.getProperty("os.name") == "Mac OS X") {
+        System.setProperty("apple.awt.application.name", "Mombodoro")
+    }
+
+    launchMombodoro()
+}
+
+private fun launchMombodoro() = application {
     val windowState = rememberWindowState(size = DpSize(1280.dp, 820.dp))
     val trayState = rememberTrayState()
     val timerState = remember { PomodoroTimerState() }
