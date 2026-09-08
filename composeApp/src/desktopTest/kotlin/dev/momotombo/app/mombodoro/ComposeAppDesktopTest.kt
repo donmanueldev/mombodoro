@@ -1,9 +1,9 @@
 package dev.momotombo.app.mombodoro
 
-import dev.donmanuel.app.pomodoro.data.PomodoroConfiguration
-import dev.donmanuel.app.pomodoro.data.PomodoroSession
-import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.data.TimerEvent
+import dev.momotombo.app.mombodoro.data.Pomodoro
+import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
+import dev.momotombo.app.mombodoro.data.PomodoroSession
+import dev.momotombo.app.mombodoro.data.TimerEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

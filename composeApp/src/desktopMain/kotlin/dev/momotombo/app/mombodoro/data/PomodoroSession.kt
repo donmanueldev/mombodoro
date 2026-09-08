@@ -66,6 +66,12 @@ data class PomodoroSession(
 
     fun restartWith(configuration: PomodoroConfiguration): PomodoroSession = start(configuration)
 
+    fun switchTo(phase: Pomodoro): PomodoroSession = copy(
+        phase = phase,
+        remainingSeconds = configuration.durationFor(phase),
+        isRunning = false,
+    )
+
     fun tick(): TimerTickResult {
         if (!isRunning || remainingSeconds <= 0) return TimerTickResult(this)
 
