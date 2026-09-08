@@ -53,4 +53,29 @@ class TasksPanelTest {
         onNodeWithText("Enviar el correo").assertIsDisplayed()
         onNodeWithText("Eliminar").assertIsDisplayed()
     }
+
+    @Test
+    fun `task filters default to pending and show completed tasks on demand`() = runComposeUiTest {
+        setContent {
+            TasksPanel(
+                tasks = listOf(
+                    FocusTask(id = 1, title = "Pendiente"),
+                    FocusTask(id = 2, title = "Completada", isCompleted = true),
+                ),
+                selectedTaskId = 1,
+                onAddTask = {},
+                onSelectTask = {},
+                onToggleTask = {},
+                onDeleteTask = {},
+            )
+        }
+
+        onNodeWithText("Pendiente").assertIsDisplayed()
+        onNodeWithText("Completada").assertDoesNotExist()
+
+        onNodeWithText("Completadas").performClick()
+
+        onNodeWithText("Pendiente").assertDoesNotExist()
+        onNodeWithText("Completada").assertIsDisplayed()
+    }
 }

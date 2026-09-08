@@ -3,6 +3,7 @@ package dev.momotombo.app.mombodoro.presentation.components
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -35,6 +36,12 @@ private val deleteActionWidth = 96.dp
 private val deleteActionGap = 8.dp
 private const val swipeOpenThreshold = 0.5f
 
+private enum class TaskFilter(val label: String) {
+    Pending("Pendientes"),
+    All("Todas"),
+    Completed("Completadas"),
+}
+
 @Composable
 fun TasksPanel(
     tasks: List<FocusTask>,
@@ -47,6 +54,14 @@ fun TasksPanel(
     onClose: (() -> Unit)? = null,
 ) {
     var draft by rememberSaveable { mutableStateOf("") }
+    var selectedFilter by rememberSaveable { mutableStateOf(TaskFilter.Pending) }
+    val visibleTasks = tasks.filter { task ->
+        when (selectedFilter) {
+            TaskFilter.Pending -> !task.isCompleted
+            TaskFilter.All -> true
+            TaskFilter.Completed -> task.isCompleted
+        }
+    }
 
     fun submitTask() {
         val title = draft.trim()
@@ -102,11 +117,21 @@ fun TasksPanel(
             colors = ButtonDefaults.buttonColors(containerColor = AppText, contentColor = Color.White),
             shape = RoundedCornerShape(12.dp),
         ) { Text("Añadir tarea", fontFamily = GetFontPoppinsSemiBold()) }
+        if (tasks.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            TaskFilterSelector(
+                selectedFilter = selectedFilter,
+                onFilterSelected = { selectedFilter = it },
+            )
+            Spacer(Modifier.height(12.dp))
+        }
         if (tasks.isEmpty()) {
             EmptyTasks()
+        } else if (visibleTasks.isEmpty()) {
+            EmptyFilteredTasks(selectedFilter)
         } else {
             LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(tasks, key = { it.id }) { task ->
+                items(visibleTasks, key = { it.id }) { task ->
                     TaskRow(
                         task = task,
                         isSelected = task.id == selectedTaskId,
@@ -121,10 +146,72 @@ fun TasksPanel(
 }
 
 @Composable
+private fun TaskFilterSelector(
+    selectedFilter: TaskFilter,
+    onFilterSelected: (TaskFilter) -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(40.dp),
+        color = AppSurface,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, AppOutline),
+    ) {
+        Row {
+            TaskFilter.entries.forEachIndexed { index, filter ->
+                val isSelected = filter == selectedFilter
+                val segmentShape = when (index) {
+                    0 -> RoundedCornerShape(topStart = 11.dp, bottomStart = 11.dp)
+                    TaskFilter.entries.lastIndex -> RoundedCornerShape(topEnd = 11.dp, bottomEnd = 11.dp)
+                    else -> RoundedCornerShape(0.dp)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(if (isSelected) Color(0xFFF8E9E5) else Color.Transparent, segmentShape)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                        ) { onFilterSelected(filter) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        filter.label,
+                        color = if (isSelected) Color(0xFFC85B4D) else AppMutedText,
+                        fontFamily = GetFontPoppinsMedium(),
+                        fontSize = 12.sp,
+                    )
+                }
+                if (index != TaskFilter.entries.lastIndex) {
+                    VerticalDivider(color = AppOutline)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun EmptyTasks() {
     Surface(color = AppSurface, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, AppOutline)) {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Aún no hay tareas", color = AppText, fontFamily = GetFontPoppinsSemiBold())
+        }
+    }
+}
+
+@Composable
+private fun EmptyFilteredTasks(filter: TaskFilter) {
+    val message = when (filter) {
+        TaskFilter.Pending -> "No hay tareas pendientes"
+        TaskFilter.Completed -> "No hay tareas completadas"
+        TaskFilter.All -> "Aún no hay tareas"
+    }
+
+    Surface(color = AppSurface, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, AppOutline)) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(message, color = AppMutedText, fontFamily = GetFontPoppinsMedium())
         }
     }
 }
