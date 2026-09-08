@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.ExperimentalComposeLibrary
 
 val macMenuBarHostSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarHost.swift")
 val macMenuBarProtocolSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarProtocol.swift")
@@ -27,11 +28,13 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+@OptIn(ExperimentalComposeLibrary::class)
 kotlin {
     jvm("desktop")
 
     sourceSets {
         val desktopMain by getting
+        val desktopTest by getting
 
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -50,6 +53,9 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.sqlite.jdbc)
+        }
+        desktopTest.dependencies {
+            implementation(compose.uiTest)
         }
     }
 }

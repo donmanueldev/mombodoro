@@ -1,42 +1,39 @@
 package dev.momotombo.app.mombodoro.presentation.components
 
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.FocusTask
-import dev.momotombo.app.mombodoro.presentation.ui.theme.AppMutedText
-import dev.momotombo.app.mombodoro.presentation.ui.theme.AppOutline
-import dev.momotombo.app.mombodoro.presentation.ui.theme.AppSurface
-import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
-import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
+import dev.momotombo.app.mombodoro.presentation.ui.theme.*
+import kotlinx.coroutines.launch
+
+private val taskRowShape = RoundedCornerShape(12.dp)
+private val taskRowHeight = 68.dp
+private val deleteActionWidth = 96.dp
+private val deleteActionGap = 8.dp
+private const val swipeOpenThreshold = 0.5f
 
 @Composable
 fun TasksPanel(
@@ -63,7 +60,12 @@ fun TasksPanel(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Tareas", color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 22.sp)
-                Text("Elige una para concentrarte", color = AppMutedText, fontFamily = GetFontPoppinsMedium(), fontSize = 13.sp)
+                Text(
+                    "Elige una para concentrarte",
+                    color = AppMutedText,
+                    fontFamily = GetFontPoppinsMedium(),
+                    fontSize = 13.sp
+                )
             }
             if (onClose != null) {
                 TextButton(onClick = onClose) { Text("Cerrar") }
@@ -100,7 +102,6 @@ fun TasksPanel(
             colors = ButtonDefaults.buttonColors(containerColor = AppText, contentColor = Color.White),
             shape = RoundedCornerShape(12.dp),
         ) { Text("Añadir tarea", fontFamily = GetFontPoppinsSemiBold()) }
-        HorizontalDivider(Modifier.padding(vertical = 20.dp), color = AppOutline)
         if (tasks.isEmpty()) {
             EmptyTasks()
         } else {
@@ -124,32 +125,118 @@ private fun EmptyTasks() {
     Surface(color = AppSurface, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, AppOutline)) {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Aún no hay tareas", color = AppText, fontFamily = GetFontPoppinsSemiBold())
-            Text("Añade una arriba y selecciónala para empezar.", modifier = Modifier.padding(top = 6.dp), color = AppMutedText, fontFamily = GetFontPoppinsMedium(), fontSize = 12.sp)
         }
     }
 }
 
 @Composable
-private fun TaskRow(task: FocusTask, isSelected: Boolean, onSelect: () -> Unit, onToggle: () -> Unit, onDelete: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
-        color = if (isSelected) Color(0xFFF8E9E5) else Color.Transparent,
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    task.title,
-                    color = AppText,
-                    fontFamily = GetFontPoppinsMedium(),
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                )
-                if (isSelected && !task.isCompleted) {
-                    Text("Tarea seleccionada", color = Color(0xFFC85B4D), fontFamily = GetFontPoppinsMedium(), fontSize = 11.sp)
+private fun TaskRow(
+    task: FocusTask,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val density = LocalDensity.current
+    val deleteActionWidthPx = with(density) { deleteActionWidth.toPx() }
+    var horizontalOffset by remember(task.id) { mutableFloatStateOf(0f) }
+    val scope = rememberCoroutineScope()
+    val rowInteractionSource = remember { MutableInteractionSource() }
+    val deleteInteractionSource = remember { MutableInteractionSource() }
+    val isDeleteHovered by deleteInteractionSource.collectIsHoveredAsState()
+    val isDeletePressed by deleteInteractionSource.collectIsPressedAsState()
+    val isDeleteRevealed = horizontalOffset < -swipeOpenThreshold
+
+    fun settleSwipe() {
+        val targetOffset = if (horizontalOffset <= -deleteActionWidthPx / 2) -deleteActionWidthPx else 0f
+        scope.launch {
+            animate(
+                initialValue = horizontalOffset,
+                targetValue = targetOffset,
+                animationSpec = tween(180),
+            ) { value, _ -> horizontalOffset = value }
+        }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxWidth().height(taskRowHeight)) {
+        val actionPaneWidth = with(density) { (-horizontalOffset).toDp() }
+            .coerceIn(0.dp, deleteActionWidth)
+        val revealFraction = actionPaneWidth / deleteActionWidth
+        val actionGap = deleteActionGap * revealFraction
+        val deleteButtonWidth = (actionPaneWidth - actionGap).coerceAtLeast(0.dp)
+        val foregroundWidth = (maxWidth - actionPaneWidth).coerceAtLeast(0.dp)
+
+        Row(Modifier.fillMaxSize()) {
+            Surface(
+                modifier = Modifier
+                    .width(foregroundWidth)
+                    .fillMaxHeight()
+                    .draggable(
+                        state = rememberDraggableState { delta ->
+                            horizontalOffset = (horizontalOffset + delta).coerceIn(-deleteActionWidthPx, 0f)
+                        },
+                        orientation = Orientation.Horizontal,
+                        onDragStopped = { settleSwipe() },
+                    )
+                    .clickable(
+                        enabled = !task.isCompleted,
+                        interactionSource = rowInteractionSource,
+                        indication = null,
+                    ) {
+                        if (isDeleteRevealed) horizontalOffset = 0f else onSelect()
+                    },
+                color = if (isSelected) Color(0xFFF8E9E5) else AppSurface,
+                shape = taskRowShape,
+                border = BorderStroke(1.dp, if (isSelected) Color(0xFFE9DCD8) else AppOutline),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = task.isCompleted,
+                        onCheckedChange = { onToggle() },
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFFC85B4D)),
+                    )
+                    Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                        Text(
+                            task.title,
+                            color = AppText,
+                            fontFamily = GetFontPoppinsMedium(),
+                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                        )
+                        if (isSelected && !task.isCompleted) {
+                            Text(
+                                "Tarea seleccionada",
+                                color = Color(0xFFC85B4D),
+                                fontFamily = GetFontPoppinsMedium(),
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
                 }
             }
-            TextButton(onClick = onToggle) { Text(if (task.isCompleted) "Reabrir" else "Hecha") }
-            TextButton(onClick = onDelete) { Text("Eliminar") }
+            if (deleteButtonWidth > 0.dp) {
+                Spacer(Modifier.width(actionGap))
+                Surface(
+                    modifier = Modifier.width(deleteButtonWidth).fillMaxHeight(),
+                    shape = taskRowShape,
+                    color = when {
+                        isDeletePressed -> Color(0xFFAB4338)
+                        isDeleteHovered -> Color(0xFFB94F43)
+                        else -> Color(0xFFC85B4D)
+                    },
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().clickable(
+                            interactionSource = deleteInteractionSource,
+                            indication = null,
+                            onClick = onDelete,
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("Eliminar", color = Color.White, fontFamily = GetFontPoppinsSemiBold()) }
+                }
+            }
         }
     }
 }
