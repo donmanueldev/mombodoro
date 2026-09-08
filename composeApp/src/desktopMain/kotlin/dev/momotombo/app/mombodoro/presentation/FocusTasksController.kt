@@ -25,9 +25,16 @@ class FocusTasksController {
 
     suspend fun load(store: FocusTaskStore) {
         val loadedTasks = withContext(Dispatchers.IO) { store.loadAll() }
+        val storedSelectedTaskId = withContext(Dispatchers.IO) { store.loadSelectedTaskId() }
         this.store = store
         mutableTasks.clear()
         mutableTasks += loadedTasks
+        selectedTaskId = storedSelectedTaskId?.takeIf { selectedId ->
+            loadedTasks.any { it.id == selectedId && !it.isCompleted }
+        }
+        if (storedSelectedTaskId != null && selectedTaskId == null) {
+            withContext(Dispatchers.IO) { store.saveSelectedTaskId(null) }
+        }
         isReady = true
     }
 
@@ -40,11 +47,16 @@ class FocusTasksController {
         mutableTasks += task
         if (mutableTasks.none { it.id == selectedTaskId && !it.isCompleted }) {
             selectedTaskId = task.id
+            withContext(Dispatchers.IO) { activeStore.saveSelectedTaskId(task.id) }
         }
     }
 
-    fun select(id: Long) {
-        if (mutableTasks.any { it.id == id && !it.isCompleted }) selectedTaskId = id
+    suspend fun select(id: Long) {
+        if (mutableTasks.any { it.id == id && !it.isCompleted }) {
+            selectedTaskId = id
+            val activeStore = store ?: return
+            withContext(Dispatchers.IO) { activeStore.saveSelectedTaskId(id) }
+        }
     }
 
     suspend fun toggleCompletion(id: Long) {
@@ -55,7 +67,10 @@ class FocusTasksController {
         val activeStore = store ?: return
         withContext(Dispatchers.IO) { activeStore.updateCompletion(updatedTask.id, updatedTask.isCompleted) }
         mutableTasks[index] = updatedTask
-        if (updatedTask.isCompleted && selectedTaskId == id) selectedTaskId = null
+        if (updatedTask.isCompleted && selectedTaskId == id) {
+            selectedTaskId = null
+            withContext(Dispatchers.IO) { activeStore.saveSelectedTaskId(null) }
+        }
     }
 
     suspend fun delete(id: Long) {
@@ -64,7 +79,10 @@ class FocusTasksController {
         val activeStore = store ?: return
         withContext(Dispatchers.IO) { activeStore.delete(id) }
         mutableTasks.removeAll { it.id == id }
-        if (selectedTaskId == id) selectedTaskId = mutableTasks.firstOrNull { !it.isCompleted }?.id
+        if (selectedTaskId == id) {
+            selectedTaskId = mutableTasks.firstOrNull { !it.isCompleted }?.id
+            withContext(Dispatchers.IO) { activeStore.saveSelectedTaskId(selectedTaskId) }
+        }
     }
 
 }

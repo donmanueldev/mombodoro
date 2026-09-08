@@ -8,8 +8,10 @@ import java.sql.DriverManager
 /** Almacenamiento local de las tareas de enfoque para la aplicación de escritorio. */
 interface FocusTaskStore {
     fun loadAll(): List<FocusTask>
+    fun loadSelectedTaskId(): Long?
     fun add(title: String): FocusTask
     fun updateCompletion(id: Long, isCompleted: Boolean)
+    fun saveSelectedTaskId(id: Long?)
     fun delete(id: Long)
 }
 
@@ -27,6 +29,14 @@ class FocusTaskRepository private constructor(private val databasePath: Path) : 
                         title TEXT NOT NULL,
                         is_completed INTEGER NOT NULL DEFAULT 0,
                         created_at INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                statement.executeUpdate(
+                    """
+                    CREATE TABLE IF NOT EXISTS focus_task_selection (
+                        id INTEGER PRIMARY KEY CHECK (id = 1),
+                        selected_task_id INTEGER
                     )
                     """.trimIndent()
                 )
@@ -54,6 +64,16 @@ class FocusTaskRepository private constructor(private val databasePath: Path) : 
         }
     }
 
+    override fun loadSelectedTaskId(): Long? = connection().use { connection ->
+        connection.prepareStatement(
+            "SELECT selected_task_id FROM focus_task_selection WHERE id = 1"
+        ).use { statement ->
+            statement.executeQuery().use { result ->
+                if (result.next()) result.getLong("selected_task_id").takeUnless { result.wasNull() } else null
+            }
+        }
+    }
+
     override fun add(title: String): FocusTask = connection().use { connection ->
         connection.prepareStatement(
             "INSERT INTO focus_tasks (title, created_at) VALUES (?, ?)",
@@ -74,6 +94,20 @@ class FocusTaskRepository private constructor(private val databasePath: Path) : 
             connection.prepareStatement("UPDATE focus_tasks SET is_completed = ? WHERE id = ?").use { statement ->
                 statement.setInt(1, if (isCompleted) 1 else 0)
                 statement.setLong(2, id)
+                statement.executeUpdate()
+            }
+        }
+    }
+
+    override fun saveSelectedTaskId(id: Long?) {
+        connection().use { connection ->
+            connection.prepareStatement(
+                """
+                INSERT INTO focus_task_selection (id, selected_task_id) VALUES (1, ?)
+                ON CONFLICT(id) DO UPDATE SET selected_task_id = excluded.selected_task_id
+                """.trimIndent()
+            ).use { statement ->
+                if (id == null) statement.setNull(1, java.sql.Types.INTEGER) else statement.setLong(1, id)
                 statement.executeUpdate()
             }
         }

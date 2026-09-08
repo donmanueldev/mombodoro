@@ -80,17 +80,73 @@ class FocusTasksControllerTest {
         assertFalse(controller.tasks.single().isCompleted)
     }
 
+    @Test
+    fun `reopening restores the last selected pending task`() = runBlocking {
+        val store = InMemoryFocusTaskStore()
+        val firstController = FocusTasksController()
+        firstController.load(store)
+        firstController.add("Preparar presentación")
+        firstController.add("Revisar diseño")
+        val selectedTaskId = firstController.tasks.single { it.title == "Revisar diseño" }.id
+
+        firstController.select(selectedTaskId)
+
+        val reopenedController = FocusTasksController()
+        reopenedController.load(store)
+
+        assertEquals(selectedTaskId, reopenedController.selectedTaskId)
+    }
+
+    @Test
+    fun `reopening clears a selection whose task was completed`() = runBlocking {
+        val store = InMemoryFocusTaskStore()
+        val firstController = FocusTasksController()
+        firstController.load(store)
+        firstController.add("Preparar presentación")
+        val selectedTaskId = assertNotNull(firstController.selectedTaskId)
+
+        store.updateCompletion(selectedTaskId, isCompleted = true)
+
+        val reopenedController = FocusTasksController()
+        reopenedController.load(store)
+
+        assertEquals(null, reopenedController.selectedTaskId)
+    }
+
+    @Test
+    fun `reopening clears a selection whose task was deleted`() = runBlocking {
+        val store = InMemoryFocusTaskStore()
+        val firstController = FocusTasksController()
+        firstController.load(store)
+        firstController.add("Preparar presentación")
+        val selectedTaskId = assertNotNull(firstController.selectedTaskId)
+
+        store.delete(selectedTaskId)
+
+        val reopenedController = FocusTasksController()
+        reopenedController.load(store)
+
+        assertEquals(null, reopenedController.selectedTaskId)
+    }
+
     private class InMemoryFocusTaskStore : FocusTaskStore {
         val tasks = mutableListOf<FocusTask>()
         private var nextId = 1L
+        private var selectedTaskId: Long? = null
 
         override fun loadAll(): List<FocusTask> = tasks.toList()
+
+        override fun loadSelectedTaskId(): Long? = selectedTaskId
 
         override fun add(title: String): FocusTask = FocusTask(nextId++, title).also(tasks::add)
 
         override fun updateCompletion(id: Long, isCompleted: Boolean) {
             val index = tasks.indexOfFirst { it.id == id }
             tasks[index] = tasks[index].copy(isCompleted = isCompleted)
+        }
+
+        override fun saveSelectedTaskId(id: Long?) {
+            selectedTaskId = id
         }
 
         override fun delete(id: Long) {
