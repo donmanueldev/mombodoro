@@ -13,6 +13,7 @@ data class TimerNotification(
     val phase: Pomodoro,
     val title: String,
     val message: String,
+    val requiresAttention: Boolean,
 )
 
 /** Single source of truth shared by the window, tray and macOS menu bar. */
@@ -77,6 +78,7 @@ internal fun TimerEvent.toNotification(configuration: PomodoroConfiguration): Ti
             5 * 60 -> "Quedan 5 minutos para terminar."
             else -> "Quedan 3 minutos para terminar."
         },
+        requiresAttention = false,
     )
 
     is TimerEvent.PhaseCompleted -> TimerNotification(
@@ -86,6 +88,7 @@ internal fun TimerEvent.toNotification(configuration: PomodoroConfiguration): Ti
             Pomodoro.FOCUS -> "Tu sesión de enfoque terminó. Es momento de descansar."
             Pomodoro.BREAK, Pomodoro.LONG_BREAK -> "Tu descanso terminó. Es momento de volver a enfocarte."
         },
+        requiresAttention = true,
     )
 }
 

@@ -1,19 +1,12 @@
 package dev.momotombo.app.mombodoro
 
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
-import dev.momotombo.app.mombodoro.data.TimerEvent
 import dev.momotombo.app.mombodoro.data.FocusTaskRepository
+import dev.momotombo.app.mombodoro.data.PomodoroSession
 import dev.momotombo.app.mombodoro.presentation.FocusTasksController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -22,6 +15,8 @@ import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.mombo_app_icon
 import pomodoro.composeapp.generated.resources.mombo_status_icon
 import java.awt.Dimension
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import kotlin.time.Duration.Companion.milliseconds
 
 fun main() {
@@ -38,7 +33,11 @@ private fun launchMombodoro() = application {
     val timerState = remember { PomodoroTimerState() }
     val taskController = remember { FocusTasksController() }
     var selectedTaskTitle by remember { mutableStateOf<String?>(null) }
+    var isWindowActive by remember { mutableStateOf(false) }
+    var shouldActivateWindow by remember { mutableStateOf(false) }
+    var notificationSystemMessage by remember { mutableStateOf<String?>(null) }
     val macMenuBarHost = remember { if (System.getProperty("os.name") == "Mac OS X") MacMenuBarHost.start() else null }
+    var notificationStatus by remember { mutableStateOf(if (macMenuBarHost == null) null else MacNotificationStatus.Checking) }
 
     DisposableEffect(macMenuBarHost) {
         onDispose { macMenuBarHost?.close() }
@@ -61,7 +60,37 @@ private fun launchMombodoro() = application {
                 MacMenuBarAction.Show -> windowState.isMinimized = false
                 MacMenuBarAction.Hide -> windowState.isMinimized = true
                 MacMenuBarAction.Exit -> exitApplication()
+                MacMenuBarAction.NotificationOpened -> {
+                    timerState.dismissNotification()
+                    windowState.isMinimized = false
+                    shouldActivateWindow = true
+                }
+
+                MacMenuBarAction.NotificationPermissionGranted -> {
+                    notificationStatus = MacNotificationStatus.Enabled
+                }
+
+                MacMenuBarAction.NotificationPermissionDenied -> {
+                    notificationStatus = MacNotificationStatus.Disabled
+                    notificationSystemMessage =
+                        "Activa las notificaciones para recibir los avisos de Mombodoro."
+                }
+
+                MacMenuBarAction.NotificationDeliveryFailed -> {
+                    notificationSystemMessage =
+                        "Mombodoro no pudo mostrar el aviso. Revisa las notificaciones."
+                }
             }
+        }
+    }
+
+    LaunchedEffect(timerState.notification?.requiresAttention) {
+        MacDockBadge.update(timerState.notification?.requiresAttention == true)
+    }
+
+    LaunchedEffect(isWindowActive) {
+        if (isWindowActive && timerState.notification?.requiresAttention == true) {
+            timerState.dismissNotification()
         }
     }
 
@@ -72,15 +101,19 @@ private fun launchMombodoro() = application {
             if (timerState.session?.isRunning != true) break
 
             val event = timerState.tick()
-            if (event is TimerEvent.PhaseCompleted) {
+            if (event != null) {
                 val notification = timerState.notification ?: continue
-                trayState.sendNotification(
-                    Notification(
-                        title = notification.title,
-                        message = notification.message,
-                        type = Notification.Type.Info,
+                if (macMenuBarHost != null) {
+                    macMenuBarHost.notify(notification)
+                } else {
+                    trayState.sendNotification(
+                        Notification(
+                            title = notification.title,
+                            message = notification.message,
+                            type = Notification.Type.Info,
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -110,22 +143,48 @@ private fun launchMombodoro() = application {
         icon = painterResource(Res.drawable.mombo_app_icon),
     ) {
         val density = LocalDensity.current
+        DisposableEffect(window) {
+            val listener = object : WindowAdapter() {
+                override fun windowGainedFocus(event: WindowEvent) {
+                    isWindowActive = true
+                }
+
+                override fun windowLostFocus(event: WindowEvent) {
+                    isWindowActive = false
+                }
+            }
+            window.addWindowFocusListener(listener)
+            isWindowActive = window.isFocused
+            onDispose { window.removeWindowFocusListener(listener) }
+        }
+
         SideEffect {
             window.minimumSize = Dimension(
                 with(density) { 1024.dp.roundToPx() },
                 with(density) { 720.dp.roundToPx() },
             )
+            if (shouldActivateWindow) {
+                window.toFront()
+                window.requestFocus()
+                shouldActivateWindow = false
+            }
         }
+
         PomodoroApp(
             timerState = timerState,
             taskController = taskController,
             onExit = ::exitApplication,
             onSelectedTaskTitleChange = { selectedTaskTitle = it },
+            showNotificationAlert = isWindowActive && !windowState.isMinimized,
+            notificationSystemMessage = notificationSystemMessage,
+            onDismissNotificationSystemMessage = { notificationSystemMessage = null },
+            notificationStatus = notificationStatus,
+            onOpenNotificationSettings = { macMenuBarHost?.openNotificationSettings() },
         )
     }
 }
 
-private fun trayTooltip(session: dev.momotombo.app.mombodoro.data.PomodoroSession): String =
+private fun trayTooltip(session: PomodoroSession): String =
     "Mombodoro · %02d:%02d · %s%s".format(
         session.remainingSeconds / 60,
         session.remainingSeconds % 60,

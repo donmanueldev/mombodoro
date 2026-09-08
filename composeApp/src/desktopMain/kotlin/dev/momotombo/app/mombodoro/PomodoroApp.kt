@@ -25,6 +25,11 @@ fun FrameWindowScope.PomodoroApp(
     taskController: FocusTasksController,
     onExit: () -> Unit,
     onSelectedTaskTitleChange: (String?) -> Unit,
+    showNotificationAlert: Boolean,
+    notificationSystemMessage: String?,
+    onDismissNotificationSystemMessage: () -> Unit,
+    notificationStatus: MacNotificationStatus?,
+    onOpenNotificationSettings: () -> Unit,
 ) {
     var isShowDialog by remember { mutableStateOf(false) }
     var isShowSettingsDialog by remember { mutableStateOf(false) }
@@ -75,7 +80,19 @@ fun FrameWindowScope.PomodoroApp(
     val activeSession = timerState.session
 
     MaterialTheme {
-        timerState.notification?.let { activeNotification ->
+        notificationSystemMessage?.let { message ->
+            NotificationAlert(
+                isVisible = true,
+                title = "Avisos de Mombodoro",
+                message = message,
+                backgroundColor = AppCanvas,
+                textColor = AppText,
+                accentColor = Pomodoro.FOCUS.appearance.accent,
+                onDismiss = onDismissNotificationSystemMessage,
+            )
+        }
+
+        timerState.notification?.takeIf { showNotificationAlert }?.let { activeNotification ->
             NotificationAlert(
                 isVisible = true,
                 title = activeNotification.title,
@@ -145,6 +162,8 @@ fun FrameWindowScope.PomodoroApp(
                     onDeleteTask = { id -> taskScope.launch { taskController.delete(id) } },
                     onSettingsToggle = { isShowSettingsDialog = it },
                     onSaveSettings = onSaveSettings,
+                    notificationStatus = notificationStatus,
+                    onOpenNotificationSettings = onOpenNotificationSettings,
                     onBackToFocusSelector = ::showFocusTypeSelector,
                 )
             } else {

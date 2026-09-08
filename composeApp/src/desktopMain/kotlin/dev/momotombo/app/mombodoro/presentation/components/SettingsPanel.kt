@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
+import dev.momotombo.app.mombodoro.MacNotificationStatus
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppMutedText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppOutline
@@ -30,6 +31,8 @@ fun SettingsPanel(
     configuration: PomodoroConfiguration,
     onClose: () -> Unit,
     onSave: (PomodoroConfiguration) -> Unit,
+    notificationStatus: MacNotificationStatus?,
+    onOpenNotificationSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var draft by remember(configuration) { mutableStateOf(configuration) }
@@ -67,6 +70,31 @@ fun SettingsPanel(
             TimeSettingItem("Antes del descanso largo", draft.cyclesBeforeLongBreak, AppText, onValueChange = { value ->
                 draft = draft.copy(cyclesBeforeLongBreak = value)
             }, minValue = 1, maxValue = 10)
+            if (notificationStatus != null) {
+                HorizontalDivider(Modifier.padding(vertical = 24.dp), color = AppOutline)
+                Text("Notificaciones", color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 14.sp)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Recibe avisos al finalizar cada bloque.",
+                    color = AppMutedText,
+                    fontFamily = GetFontPoppinsMedium(),
+                    fontSize = 12.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                val notificationLabel = when (notificationStatus) {
+                    MacNotificationStatus.Enabled -> "Avisos activados"
+                    MacNotificationStatus.Disabled -> "Avisos desactivados"
+                    MacNotificationStatus.Checking -> "Comprobando permisos…"
+                }
+                Text(notificationLabel, color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 13.sp)
+                if (notificationStatus != MacNotificationStatus.Enabled) {
+                    Spacer(Modifier.height(10.dp))
+                    Button(
+                        onClick = onOpenNotificationSettings,
+                        colors = ButtonDefaults.buttonColors(containerColor = AppCanvas, contentColor = AppText),
+                    ) { Text("Abrir ajustes de notificaciones", fontFamily = GetFontPoppinsSemiBold()) }
+                }
+            }
             Surface(modifier = Modifier.fillMaxWidth().padding(top = 24.dp), color = AppCanvas, shape = RoundedCornerShape(12.dp)) {
                 Text(
                     "Guardar reinicia la sesión actual desde enfoque.",

@@ -159,6 +159,27 @@ class ComposeAppDesktopTest {
     }
 
     @Test
+    fun `native notification command preserves its title and message`() {
+        val command = MacMenuBarProtocol.notificationCommand(
+            TimerNotification(
+                phase = Pomodoro.FOCUS,
+                title = "Alerta de tiempo · Enfoque · Pomodoro",
+                message = "Quedan 5 minutos para terminar.",
+                requiresAttention = false,
+            )
+        )
+
+        assertEquals(
+            "notification\tQWxlcnRhIGRlIHRpZW1wbyDCtyBFbmZvcXVlIMK3IFBvbW9kb3Jv\tUXVlZGFuIDUgbWludXRvcyBwYXJhIHRlcm1pbmFyLg==",
+            command,
+        )
+        assertEquals(MacMenuBarAction.NotificationOpened, MacMenuBarProtocol.actionFrom("notificationOpened"))
+        assertEquals(MacMenuBarAction.NotificationPermissionGranted, MacMenuBarProtocol.actionFrom("notificationPermissionGranted"))
+        assertEquals(MacMenuBarAction.NotificationPermissionDenied, MacMenuBarProtocol.actionFrom("notificationPermissionDenied"))
+        assertEquals(MacMenuBarAction.NotificationDeliveryFailed, MacMenuBarProtocol.actionFrom("notificationDeliveryFailed"))
+    }
+
+    @Test
     fun `completing a phase creates one completion notification and pauses the next phase`() {
         val state = PomodoroTimerState()
         state.selectFocusType(
@@ -176,7 +197,46 @@ class ComposeAppDesktopTest {
         assertEquals(Pomodoro.BREAK, state.session?.phase)
         assertEquals(false, state.session?.isRunning)
         assertEquals("Tiempo completado · Enfoque · Pomodoro", state.notification?.title)
+        assertEquals(true, state.notification?.requiresAttention)
         assertEquals(null, state.tick())
+    }
+
+    @Test
+    fun `time warnings create native alerts without requiring dock attention`() {
+        val state = PomodoroTimerState()
+        state.selectFocusType(
+            PomodoroConfiguration(
+                name = "Pomodoro",
+                focusSeconds = 5 * 60 + 1,
+                shortBreakSeconds = 5 * 60,
+                longBreakSeconds = 15 * 60,
+                cyclesBeforeLongBreak = 4,
+            )
+        )
+        state.toggleRunning()
+
+        assertIs<TimerEvent.TimeWarning>(state.tick())
+        assertEquals(false, state.notification?.requiresAttention)
+    }
+
+    @Test
+    fun `dismissing a completion alert clears its pending attention`() {
+        val state = PomodoroTimerState()
+        state.selectFocusType(
+            PomodoroConfiguration(
+                name = "Pomodoro",
+                focusSeconds = 1,
+                shortBreakSeconds = 5 * 60,
+                longBreakSeconds = 15 * 60,
+                cyclesBeforeLongBreak = 4,
+            )
+        )
+        state.toggleRunning()
+        state.tick()
+
+        state.dismissNotification()
+
+        assertEquals(null, state.notification)
     }
 
     private fun testConfiguration(
