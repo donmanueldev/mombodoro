@@ -3,7 +3,14 @@ package dev.momotombo.app.mombodoro
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import dev.momotombo.app.mombodoro.data.TimerEvent
 import kotlinx.coroutines.delay
@@ -11,34 +18,41 @@ import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.mombo_app_icon
 import pomodoro.composeapp.generated.resources.mombo_status_icon
+import java.awt.Dimension
 import kotlin.time.Duration.Companion.milliseconds
 
 fun main() = application {
-    val windowState = rememberWindowState()
+    val windowState = rememberWindowState(size = DpSize(1280.dp, 820.dp))
     val trayState = rememberTrayState()
     val timerState = remember { PomodoroTimerState() }
+    var selectedTaskTitle by remember { mutableStateOf<String?>(null) }
     val macMenuBarHost = remember { if (System.getProperty("os.name") == "Mac OS X") MacMenuBarHost.start() else null }
 
     DisposableEffect(macMenuBarHost) {
         onDispose { macMenuBarHost?.close() }
     }
 
-    SideEffect { macMenuBarHost?.update(timerState.session) }
+    LaunchedEffect(macMenuBarHost) {
+        val host = macMenuBarHost ?: return@LaunchedEffect
+        snapshotFlow { timerState.session to selectedTaskTitle }
+            .collect { (session, taskTitle) -> host.update(session, taskTitle) }
+    }
 
     LaunchedEffect(macMenuBarHost) {
         macMenuBarHost?.actions?.collect { action ->
             when (action) {
                 MacMenuBarAction.Toggle -> timerState.toggleRunning()
                 MacMenuBarAction.Show -> windowState.isMinimized = false
+                MacMenuBarAction.Hide -> windowState.isMinimized = true
                 MacMenuBarAction.Exit -> exitApplication()
             }
         }
     }
 
-    LaunchedEffect(timerState.session?.isRunning, timerState.session?.speed) {
+    LaunchedEffect(timerState.session?.isRunning) {
         while (timerState.session?.isRunning == true) {
             val runningSession = timerState.session ?: break
-            delay(runningSession.speed.delayMillis.milliseconds)
+            delay(1_000.milliseconds)
             if (timerState.session?.isRunning != true) break
 
             val event = timerState.tick()
@@ -62,6 +76,7 @@ fun main() = application {
             tooltip = timerState.session?.let(::trayTooltip) ?: "Mombodoro",
         ) {
             Item("Mostrar Mombodoro", onClick = { windowState.isMinimized = false })
+            Item("Ocultar Mombodoro", onClick = { windowState.isMinimized = true })
             Item(
                 if (timerState.session?.isRunning == true) "Parar temporizador" else "Continuar temporizador",
                 enabled = timerState.session != null,
@@ -78,7 +93,18 @@ fun main() = application {
         title = "Mombodoro",
         icon = painterResource(Res.drawable.mombo_app_icon),
     ) {
-        PomodoroApp(timerState = timerState, onExit = ::exitApplication)
+        val density = LocalDensity.current
+        SideEffect {
+            window.minimumSize = Dimension(
+                with(density) { 1024.dp.roundToPx() },
+                with(density) { 720.dp.roundToPx() },
+            )
+        }
+        PomodoroApp(
+            timerState = timerState,
+            onExit = ::exitApplication,
+            onSelectedTaskTitleChange = { selectedTaskTitle = it },
+        )
     }
 }
 

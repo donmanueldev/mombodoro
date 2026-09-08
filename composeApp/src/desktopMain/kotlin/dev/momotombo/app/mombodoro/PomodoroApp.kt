@@ -13,11 +13,18 @@ import dev.momotombo.app.mombodoro.presentation.components.FocusTypeSelector
 import dev.momotombo.app.mombodoro.presentation.components.NotificationAlert
 import dev.momotombo.app.mombodoro.presentation.view.desktop.PomodoroDesktopLayout
 import dev.momotombo.app.mombodoro.presentation.view.mobile.PomodoroMobileLayout
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
+import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
+import dev.momotombo.app.mombodoro.presentation.ui.theme.appearance
 import dev.momotombo.app.mombodoro.utils.CustomDialog
 import dev.momotombo.app.mombodoro.utils.platform
 
 @Composable
-fun FrameWindowScope.PomodoroApp(timerState: PomodoroTimerState, onExit: () -> Unit) {
+fun FrameWindowScope.PomodoroApp(
+    timerState: PomodoroTimerState,
+    onExit: () -> Unit,
+    onSelectedTaskTitleChange: (String?) -> Unit,
+) {
     var isShowDialog by remember { mutableStateOf(false) }
     var isShowSettingsDialog by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
@@ -28,6 +35,9 @@ fun FrameWindowScope.PomodoroApp(timerState: PomodoroTimerState, onExit: () -> U
         }
     }
     var selectedTaskId by remember { mutableStateOf<Long?>(null) }
+    val selectedTaskTitle = tasks.firstOrNull { it.id == selectedTaskId }?.title
+
+    SideEffect { onSelectedTaskTitleChange(selectedTaskTitle) }
 
     fun addTask(title: String) {
         val trimmedTitle = title.trim()
@@ -98,17 +108,17 @@ fun FrameWindowScope.PomodoroApp(timerState: PomodoroTimerState, onExit: () -> U
                 isVisible = true,
                 title = activeNotification.title,
                 message = activeNotification.message,
-                backgroundColor = activeNotification.phase.backgroundColor,
-                textColor = activeNotification.phase.textColor,
+                backgroundColor = AppCanvas,
+                textColor = AppText,
+                accentColor = activeNotification.phase.appearance.accent,
                 onDismiss = timerState::dismissNotification,
             )
         }
 
-        val dialogPhase = activeSession?.phase ?: Pomodoro.FOCUS
         if (isShowDialog) {
             CustomDialog(
-                textColor = dialogPhase.textColor,
-                backgroundColor = dialogPhase.backgroundColor,
+                textColor = AppText,
+                backgroundColor = AppCanvas,
                 onCloseDialog = { isShowDialog = false },
             )
         }
@@ -147,20 +157,17 @@ fun FrameWindowScope.PomodoroApp(timerState: PomodoroTimerState, onExit: () -> U
                     phaseTitle = layout.phaseTitle,
                     isPlayPomodoro = layout.isRunning,
                     timerLeft = layout.remainingSeconds,
-                    speedTime = layout.speed,
                     isShowSettingsDialog = isShowSettingsDialog,
                     configuration = layout.configuration,
                     completedPomodoros = layout.completedFocusSessions,
                     tasks = tasks,
                     selectedTaskId = selectedTaskId,
                     onPlayPause = { timerState.toggleRunning() },
-                    onSpeedChange = timerState::changeSpeed,
                     onPhaseChange = timerState::switchPhase,
                     onAddTask = ::addTask,
                     onSelectTask = { selectedTaskId = it },
                     onToggleTask = ::toggleTask,
                     onDeleteTask = ::deleteTask,
-                    onAbout = { isShowDialog = true },
                     onSettingsToggle = { isShowSettingsDialog = it },
                     onSaveSettings = onSaveSettings,
                     onBackToFocusSelector = ::showFocusTypeSelector,
@@ -171,20 +178,17 @@ fun FrameWindowScope.PomodoroApp(timerState: PomodoroTimerState, onExit: () -> U
                     phaseTitle = layout.phaseTitle,
                     isPlayPomodoro = layout.isRunning,
                     timerLeft = layout.remainingSeconds,
-                    speedTime = layout.speed,
                     isShowSettingsDialog = isShowSettingsDialog,
                     configuration = layout.configuration,
                     completedPomodoros = layout.completedFocusSessions,
                     tasks = tasks,
                     selectedTaskId = selectedTaskId,
                     onPlayPause = { timerState.toggleRunning() },
-                    onSpeedChange = timerState::changeSpeed,
                     onPhaseChange = timerState::switchPhase,
                     onAddTask = ::addTask,
                     onSelectTask = { selectedTaskId = it },
                     onToggleTask = ::toggleTask,
                     onDeleteTask = ::deleteTask,
-                    onAbout = { isShowDialog = true },
                     onSettingsToggle = { isShowSettingsDialog = it },
                     onSaveSettings = onSaveSettings,
                     onBackToFocusSelector = ::showFocusTypeSelector,

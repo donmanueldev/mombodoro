@@ -9,11 +9,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import java.io.BufferedWriter
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 
-enum class MacMenuBarAction { Toggle, Show, Exit }
+enum class MacMenuBarAction { Toggle, Show, Hide, Exit }
 
 class MacMenuBarHost private constructor(private val process: Process) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -31,9 +30,17 @@ class MacMenuBarHost private constructor(private val process: Process) {
         }
     }
 
-    fun update(session: PomodoroSession?) {
-        val title = session?.let(::statusTitle) ?: "Mombodoro"
-        send("state\t${title.encode()}\t${if (session?.isRunning == true) 1 else 0}")
+    fun update(session: PomodoroSession?, selectedTaskTitle: String?) {
+        if (session == null) {
+            send("idle")
+            return
+        }
+
+        send(
+            "state\t${session.remainingSeconds}\t${session.configuration.durationFor(session.phase)}\t" +
+                "${session.phase.title.encode()}\t${selectedTaskTitle?.encode() ?: "-"}\t" +
+                "${if (session.isRunning) 1 else 0}",
+        )
     }
 
     fun close() {
@@ -51,13 +58,6 @@ class MacMenuBarHost private constructor(private val process: Process) {
         }
     }
 
-    private fun statusTitle(session: PomodoroSession): String = "%02d:%02d · %s%s".format(
-        session.remainingSeconds / 60,
-        session.remainingSeconds % 60,
-        session.phaseTitle,
-        if (session.isRunning) "" else " · Pausado",
-    )
-
     private fun String.encode(): String = Base64.getEncoder().encodeToString(toByteArray())
 
     companion object {
@@ -65,7 +65,12 @@ class MacMenuBarHost private constructor(private val process: Process) {
             val executable = System.getProperty("mombodoro.menuHost") ?: return null
             return runCatching {
                 terminatePreviousHosts(executable)
-                MacMenuBarHost(ProcessBuilder(executable).start())
+                val process = ProcessBuilder(executable).apply {
+                    System.getProperty("mombodoro.statusIcon")?.let { path ->
+                        environment()["MOMBODORO_STATUS_ICON"] = path
+                    }
+                }.start()
+                MacMenuBarHost(process)
             }.getOrNull()
         }
 

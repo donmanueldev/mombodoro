@@ -61,6 +61,7 @@ compose.desktop {
                 "-Xdock:name=Mombodoro",
                 "-Xdock:icon=${project.file("src/desktopMain/resources/Mombo.icns").absolutePath}",
                 "-Dmombodoro.menuHost=${macMenuBarHostBinary.get().asFile.absolutePath}",
+                "-Dmombodoro.statusIcon=${project.file("src/desktopMain/composeResources/drawable/mombo_status_icon.svg").absolutePath}",
             )
         }
 
