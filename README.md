@@ -14,6 +14,8 @@
 - Short and long breaks with configurable cycles.
 - Editable durations; saving settings restarts the session in Focus.
 - In-app alerts at 5 and 3 minutes, plus a completion alert.
+- Menu-bar controls with the active timer and phase in the status tooltip.
+- System notifications when a focus or break phase completes, even while the app is minimized.
 - A theme that adapts to the active phase.
 
 ## Todo List

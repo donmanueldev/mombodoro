@@ -1,5 +1,23 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
+val macMenuBarHostSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarHost.swift")
+val macMenuBarHostBinary = layout.buildDirectory.file("MombodoroMenuBarHost")
+
+val compileMacMenuBarHost by tasks.registering(Exec::class) {
+    onlyIf { System.getProperty("os.name") == "Mac OS X" }
+    inputs.file(macMenuBarHostSource)
+    outputs.file(macMenuBarHostBinary)
+    commandLine(
+        "xcrun",
+        "swiftc",
+        macMenuBarHostSource.asFile.absolutePath,
+        "-framework",
+        "Cocoa",
+        "-o",
+        macMenuBarHostBinary.get().asFile.absolutePath,
+    )
+}
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -28,6 +46,7 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.sqlite.jdbc)
         }
     }
 }
@@ -35,25 +54,32 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "dev.donmanuel.app.pomodoro.MainKt"
+        mainClass = "dev.momotombo.app.mombodoro.MainKt"
 
         if (System.getProperty("os.name") == "Mac OS X") {
             jvmArgs += listOf(
-                "-Xdock:name=Mombo",
+                "-Xdock:name=Mombodoro",
                 "-Xdock:icon=${project.file("src/desktopMain/resources/Mombo.icns").absolutePath}",
+                "-Dmombodoro.menuHost=${macMenuBarHostBinary.get().asFile.absolutePath}",
             )
         }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "Mombo"
+            packageName = "Mombodoro"
             packageVersion = "1.0.0"
 
             macOS {
                 iconFile.set(project.file("src/desktopMain/resources/Mombo.icns"))
-                dockName = "Mombo"
-                bundleID = "dev.donmanuel.mombo"
+                dockName = "Mombodoro"
+                bundleID = "dev.momotombo.Mombodoro"
             }
         }
+    }
+}
+
+tasks.configureEach {
+    if (name == "run") {
+        dependsOn(compileMacMenuBarHost)
     }
 }
