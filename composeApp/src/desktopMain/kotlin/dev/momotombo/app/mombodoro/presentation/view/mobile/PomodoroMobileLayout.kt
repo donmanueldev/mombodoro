@@ -19,11 +19,13 @@ import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
 import dev.momotombo.app.mombodoro.data.TimerSpeed
 import dev.momotombo.app.mombodoro.data.FocusTask
 import dev.momotombo.app.mombodoro.presentation.components.PomodoroContent
+import dev.momotombo.app.mombodoro.presentation.components.SelectedTaskControl
 import dev.momotombo.app.mombodoro.presentation.components.SettingsDialog
 import dev.momotombo.app.mombodoro.presentation.components.TasksPanel
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.appearance
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_settings
@@ -46,11 +48,13 @@ fun PomodoroMobileLayout(
     onAddTask: (String) -> Unit,
     onSelectTask: (Long) -> Unit,
     onToggleTask: (Long) -> Unit,
+    onCompleteSelectedTask: (Long) -> Unit,
     onDeleteTask: (Long) -> Unit,
     onSettingsToggle: (Boolean) -> Unit,
     onSaveSettings: (PomodoroConfiguration) -> Unit,
     onBackToFocusSelector: () -> Unit = {}
 ) {
+    val selectedTask = tasks.firstOrNull { it.id == selectedTaskId }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -118,6 +122,14 @@ fun PomodoroMobileLayout(
                     onPlayPause = onPlayPause,
                     onSpeedChange = onSpeedChange,
                     onPhaseChange = onPhaseChange,
+                )
+            }
+            selectedTask?.let { task ->
+                SelectedTaskControl(
+                    title = task.title,
+                    accent = pomodoro.appearance.accent,
+                    onComplete = { onCompleteSelectedTask(task.id) },
+                    modifier = Modifier.padding(top = 16.dp),
                 )
             }
             TasksPanel(

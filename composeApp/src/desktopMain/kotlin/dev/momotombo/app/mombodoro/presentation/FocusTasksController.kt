@@ -38,11 +38,13 @@ class FocusTasksController {
         val activeStore = store ?: return
         val task = withContext(Dispatchers.IO) { activeStore.add(normalizedTitle) }
         mutableTasks += task
-        selectedTaskId = task.id
+        if (mutableTasks.none { it.id == selectedTaskId && !it.isCompleted }) {
+            selectedTaskId = task.id
+        }
     }
 
     fun select(id: Long) {
-        if (mutableTasks.any { it.id == id }) selectedTaskId = id
+        if (mutableTasks.any { it.id == id && !it.isCompleted }) selectedTaskId = id
     }
 
     suspend fun toggleCompletion(id: Long) {
@@ -53,6 +55,7 @@ class FocusTasksController {
         val activeStore = store ?: return
         withContext(Dispatchers.IO) { activeStore.updateCompletion(updatedTask.id, updatedTask.isCompleted) }
         mutableTasks[index] = updatedTask
+        if (updatedTask.isCompleted && selectedTaskId == id) selectedTaskId = null
     }
 
     suspend fun delete(id: Long) {
