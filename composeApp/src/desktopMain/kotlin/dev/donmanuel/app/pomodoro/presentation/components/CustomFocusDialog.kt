@@ -54,7 +54,7 @@ fun CustomFocusDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Configuración Personalizada",
+                    text = "Configuración personalizada",
                     fontFamily = GetFontPoppinsSemiBold(),
                     fontSize = 20.sp,
                     color = textColor,
@@ -62,7 +62,7 @@ fun CustomFocusDialog(
                 )
 
                 TimeSettingItem(
-                    title = "Tiempo de Focus (min)",
+                    title = "Tiempo de enfoque (min)",
                     value = focusTime,
                     textColor = textColor,
                     onValueChange = { focusTime = it }
@@ -71,7 +71,7 @@ fun CustomFocusDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Tiempo de Short Break (min)",
+                    title = "Tiempo de descanso corto (min)",
                     value = shortBreakTime,
                     textColor = textColor,
                     onValueChange = { shortBreakTime = it }
@@ -80,7 +80,7 @@ fun CustomFocusDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Tiempo de Long Break (min)",
+                    title = "Tiempo de descanso largo (min)",
                     value = longBreakTime,
                     textColor = textColor,
                     onValueChange = { longBreakTime = it }

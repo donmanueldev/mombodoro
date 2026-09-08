@@ -1,188 +1,201 @@
 package dev.donmanuel.app.pomodoro
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.window.FrameWindowScope
+import androidx.compose.ui.window.MenuBar
 import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.data.PomodoroSettings
-import dev.donmanuel.app.pomodoro.data.Speed
+import dev.donmanuel.app.pomodoro.data.PomodoroConfiguration
+import dev.donmanuel.app.pomodoro.data.PomodoroSession
+import dev.donmanuel.app.pomodoro.data.TimerEvent
 import dev.donmanuel.app.pomodoro.presentation.components.CustomFocusDialog
 import dev.donmanuel.app.pomodoro.presentation.components.FocusTypeSelector
 import dev.donmanuel.app.pomodoro.presentation.components.NotificationAlert
 import dev.donmanuel.app.pomodoro.presentation.view.desktop.PomodoroDesktopLayout
 import dev.donmanuel.app.pomodoro.presentation.view.mobile.PomodoroMobileLayout
-import dev.donmanuel.app.pomodoro.utils.NotificationManager
+import dev.donmanuel.app.pomodoro.utils.CustomDialog
 import dev.donmanuel.app.pomodoro.utils.platform
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
+
+private data class TimerNotification(
+    val phase: Pomodoro,
+    val title: String,
+    val message: String,
+)
 
 @Composable
-fun PomodoroApp() {
-    var pomodoro by remember { mutableStateOf(Pomodoro.FOCUS) }
-    var isPlayPomodoro by remember { mutableStateOf(false) }
+fun FrameWindowScope.PomodoroApp(onExit: () -> Unit) {
+    var session by remember { mutableStateOf<PomodoroSession?>(null) }
     var isShowDialog by remember { mutableStateOf(false) }
     var isShowSettingsDialog by remember { mutableStateOf(false) }
-    var timerLeft by remember { mutableStateOf(pomodoro.timer) }
-    var speedTime by remember { mutableStateOf(Speed.NORMAL) }
-    var completedPomodoros by remember { mutableStateOf(0) }
-    
-    var showFocusSelector by remember { mutableStateOf(true) }
     var showCustomDialog by remember { mutableStateOf(false) }
+    var notification by remember { mutableStateOf<TimerNotification?>(null) }
 
-    val settings = remember { PomodoroSettings() }
-
-    val notificationManager = remember { NotificationManager() }
-    
-    fun applyFocusTypeSettings(title: String, focusTime: Int, shortBreakTime: Int, longBreakTime: Int, cycles: Int) {
-        Pomodoro.FOCUS.title = "Focus - $title"
-        Pomodoro.FOCUS.timer = focusTime
-        Pomodoro.BREAK.timer = shortBreakTime
-        Pomodoro.LONG_BREAK.timer = longBreakTime
-        settings.cyclesBeforeLongBreak.value = cycles
-        
-        if (!isPlayPomodoro) {
-            timerLeft = pomodoro.timer
-        }
-        
-        // Actualizar el título en el gestor de notificaciones
-        notificationManager.currentTitle = title
-        
-        showFocusSelector = false
+    fun selectFocusType(configuration: PomodoroConfiguration) {
+        session = PomodoroSession.start(configuration)
+        isShowDialog = false
+        isShowSettingsDialog = false
+        showCustomDialog = false
+        notification = null
     }
 
-    LaunchedEffect(key1 = isPlayPomodoro) {
-        if (isPlayPomodoro) {
-            notificationManager.resetNotifications()
-        }
-        
-        while (isPlayPomodoro && timerLeft > 0) {
-            delay(speedTime.speed)
-            timerLeft--
-            
-            // Verificar si es momento de mostrar una notificación
-            notificationManager.checkTimeForNotifications(timerLeft, isPlayPomodoro)
+    fun showFocusTypeSelector() {
+        session = null
+        notification = null
+        isShowDialog = false
+        isShowSettingsDialog = false
+        showCustomDialog = false
+    }
 
-            if (timerLeft <= 0) {
-                when (pomodoro) {
-                    Pomodoro.FOCUS -> {
-                        completedPomodoros++
-                        // Check if it's time for a long break
-                        if (completedPomodoros >= settings.cyclesBeforeLongBreak.value) {
-                            pomodoro = Pomodoro.LONG_BREAK
-                            completedPomodoros = 0
-                            notificationManager.finishedMessage = "¡Tiempo de Focus completado! Es hora de tomar un descanso largo."
-                        } else {
-                            pomodoro = Pomodoro.BREAK
-                            notificationManager.finishedMessage = "¡Tiempo de Focus completado! Es hora de tomar un descanso corto."
-                        }
-                        timerLeft = pomodoro.timer
-                        isPlayPomodoro = false
-                    }
-                    Pomodoro.BREAK, Pomodoro.LONG_BREAK -> {
-                        pomodoro = Pomodoro.FOCUS
-                        notificationManager.finishedMessage = "¡Tiempo de descanso completado! Es hora de volver a concentrarse."
-                        timerLeft = pomodoro.timer
-                        isPlayPomodoro = false
-                    }
-                }
-            }
+    MenuBar {
+        Menu("Sesión") {
+            Item("Nuevo enfoque", onClick = ::showFocusTypeSelector)
+            Item(
+                if (session?.isRunning == true) "Pausar temporizador" else "Iniciar temporizador",
+                onClick = { session = session?.toggleRunning() },
+            )
+            Item(
+                "Reiniciar sesión",
+                onClick = {
+                    session = session?.let { PomodoroSession.start(it.configuration) }
+                    notification = null
+                },
+            )
+            Separator()
+            Item("Salir", onClick = onExit)
+        }
+        Menu("Opciones") {
+            Item("Ajustes", onClick = { if (session != null) isShowSettingsDialog = true })
+        }
+        Menu("Ayuda") {
+            Item("Acerca de", onClick = { isShowDialog = true })
         }
     }
 
-    val platform = platform()
+    LaunchedEffect(session?.isRunning, session?.speed) {
+        while (session?.isRunning == true) {
+            val runningSession = session ?: break
+            delay(runningSession.speed.delayMillis.milliseconds)
+            val currentSession = session ?: break
+            if (!currentSession.isRunning) break
+
+            val result = currentSession.tick()
+            session = result.session
+            notification = result.event?.toNotification(currentSession.configuration)
+        }
+    }
+
+    val activeSession = session
 
     MaterialTheme {
-        NotificationAlert(
-            showNotification = notificationManager.showFiveMinNotification,
-            title = "Alerta de tiempo - ${pomodoro.title}",
-            message = notificationManager.fiveMinMessage,
-            backgroundColor = pomodoro.backgroundColor,
-            textColor = pomodoro.textColor,
-            onDismiss = {}
-        )
-        
-        NotificationAlert(
-            showNotification = notificationManager.showThreeMinNotification,
-            title = "Alerta de tiempo - ${pomodoro.title}",
-            message = notificationManager.threeMinMessage,
-            backgroundColor = pomodoro.backgroundColor,
-            textColor = pomodoro.textColor,
-            onDismiss = {}
-        )
-        
-        NotificationAlert(
-            showNotification = notificationManager.showFinishedNotification,
-            title = "¡Tiempo completado! - ${pomodoro.title}",
-            message = notificationManager.finishedMessage,
-            backgroundColor = pomodoro.backgroundColor,
-            textColor = pomodoro.textColor,
-            onDismiss = {}
-        )
-        
-        if (showFocusSelector) {
+        notification?.let { activeNotification ->
+            NotificationAlert(
+                isVisible = true,
+                title = activeNotification.title,
+                message = activeNotification.message,
+                backgroundColor = activeNotification.phase.backgroundColor,
+                textColor = activeNotification.phase.textColor,
+                onDismiss = { notification = null },
+            )
+        }
+
+        val dialogPhase = activeSession?.phase ?: Pomodoro.FOCUS
+        if (isShowDialog) {
+            CustomDialog(
+                textColor = dialogPhase.textColor,
+                backgroundColor = dialogPhase.backgroundColor,
+                onCloseDialog = { isShowDialog = false },
+            )
+        }
+
+        if (activeSession == null) {
             FocusTypeSelector(
                 onSelectFocusType = { title, focusTime, shortBreakTime, longBreakTime, cycles ->
                     if (title == "Personalizado") {
                         showCustomDialog = true
                     } else {
-                        applyFocusTypeSettings(title, focusTime, shortBreakTime, longBreakTime, cycles)
+                        selectFocusType(
+                            PomodoroConfiguration(title, focusTime, shortBreakTime, longBreakTime, cycles)
+                        )
                     }
                 }
             )
-            
+
             if (showCustomDialog) {
                 CustomFocusDialog(
                     onDismiss = { showCustomDialog = false },
                     onConfirm = { title, focusTime, shortBreakTime, longBreakTime, cycles ->
-                        applyFocusTypeSettings(title, focusTime, shortBreakTime, longBreakTime, cycles)
+                        selectFocusType(
+                            PomodoroConfiguration(title, focusTime, shortBreakTime, longBreakTime, cycles)
+                        )
                     }
                 )
             }
         } else {
-            if (platform.isDesktop) {
+            val layout = activeSession
+            val onSaveSettings: (PomodoroConfiguration) -> Unit = { configuration ->
+                session = layout.restartWith(configuration)
+                notification = null
+            }
+            if (platform().isDesktop) {
                 PomodoroDesktopLayout(
-                    pomodoro = pomodoro,
-                    isPlayPomodoro = isPlayPomodoro,
-                    timerLeft = timerLeft,
-                    speedTime = speedTime,
-                    isShowDialog = isShowDialog,
+                    pomodoro = layout.phase,
+                    phaseTitle = layout.phaseTitle,
+                    isPlayPomodoro = layout.isRunning,
+                    timerLeft = layout.remainingSeconds,
+                    speedTime = layout.speed,
                     isShowSettingsDialog = isShowSettingsDialog,
-                    settings = settings,
-                    completedPomodoros = completedPomodoros,
-                    onPlayPause = { isPlayPomodoro = it },
-                    onSpeedChange = { speedTime = it },
-                    onDialogToggle = { isShowDialog = it },
+                    configuration = layout.configuration,
+                    completedPomodoros = layout.completedFocusSessions,
+                    onPlayPause = { session = layout.toggleRunning() },
+                    onSpeedChange = { session = layout.copy(speed = it) },
+                    onAbout = { isShowDialog = true },
                     onSettingsToggle = { isShowSettingsDialog = it },
-                    onBackToFocusSelector = { 
-                        isPlayPomodoro = false
-                        notificationManager.resetNotifications()
-                        showFocusSelector = true
-                    }
+                    onSaveSettings = onSaveSettings,
+                    onBackToFocusSelector = ::showFocusTypeSelector,
                 )
             } else {
                 PomodoroMobileLayout(
-                    pomodoro = pomodoro,
-                    isPlayPomodoro = isPlayPomodoro,
-                    timerLeft = timerLeft,
-                    speedTime = speedTime,
-                    isShowDialog = isShowDialog,
+                    pomodoro = layout.phase,
+                    phaseTitle = layout.phaseTitle,
+                    isPlayPomodoro = layout.isRunning,
+                    timerLeft = layout.remainingSeconds,
+                    speedTime = layout.speed,
                     isShowSettingsDialog = isShowSettingsDialog,
-                    settings = settings,
-                    completedPomodoros = completedPomodoros,
-                    onPlayPause = { isPlayPomodoro = it },
-                    onSpeedChange = { speedTime = it },
-                    onDialogToggle = { isShowDialog = it },
+                    configuration = layout.configuration,
+                    completedPomodoros = layout.completedFocusSessions,
+                    onPlayPause = { session = layout.toggleRunning() },
+                    onSpeedChange = { session = layout.copy(speed = it) },
+                    onAbout = { isShowDialog = true },
                     onSettingsToggle = { isShowSettingsDialog = it },
-                    onBackToFocusSelector = { 
-                        isPlayPomodoro = false
-                        notificationManager.resetNotifications()
-                        showFocusSelector = true
-                    }
+                    onSaveSettings = onSaveSettings,
+                    onBackToFocusSelector = ::showFocusTypeSelector,
                 )
             }
         }
     }
 }
+
+private fun TimerEvent.toNotification(configuration: PomodoroConfiguration): TimerNotification = when (this) {
+    is TimerEvent.TimeWarning -> TimerNotification(
+        phase = phase,
+        title = "Alerta de tiempo · ${phase.displayTitle(configuration)}",
+        message = when (secondsRemaining) {
+            5 * 60 -> "Quedan 5 minutos para terminar."
+            else -> "Quedan 3 minutos para terminar."
+        },
+    )
+
+    is TimerEvent.PhaseCompleted -> TimerNotification(
+        phase = phase,
+        title = "Tiempo completado · ${phase.displayTitle(configuration)}",
+        message = when (phase) {
+            Pomodoro.FOCUS -> "Tu sesión de enfoque terminó. Es momento de descansar."
+            Pomodoro.BREAK, Pomodoro.LONG_BREAK -> "Tu descanso terminó. Es momento de volver a enfocarte."
+        },
+    )
+}
+
+private fun Pomodoro.displayTitle(configuration: PomodoroConfiguration): String =
+    if (this == Pomodoro.FOCUS) "Focus · ${configuration.name}" else title

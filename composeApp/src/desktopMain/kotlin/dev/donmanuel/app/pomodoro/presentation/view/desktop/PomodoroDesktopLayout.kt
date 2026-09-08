@@ -15,12 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.data.PomodoroSettings
-import dev.donmanuel.app.pomodoro.data.Speed
+import dev.donmanuel.app.pomodoro.data.PomodoroConfiguration
+import dev.donmanuel.app.pomodoro.data.TimerSpeed
 import dev.donmanuel.app.pomodoro.presentation.components.PomodoroContent
 import dev.donmanuel.app.pomodoro.presentation.components.SettingsDialog
 import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.utils.CustomDialog
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_settings
@@ -29,17 +28,18 @@ import pomodoro.composeapp.generated.resources.ic_settings
 fun PomodoroDesktopLayout(
     modifier: Modifier = Modifier,
     pomodoro: Pomodoro,
+    phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
-    speedTime: Speed,
-    isShowDialog: Boolean,
+    speedTime: TimerSpeed,
     isShowSettingsDialog: Boolean,
-    settings: PomodoroSettings,
+    configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     onPlayPause: (Boolean) -> Unit,
-    onSpeedChange: (Speed) -> Unit,
-    onDialogToggle: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
+    onAbout: () -> Unit,
     onSettingsToggle: (Boolean) -> Unit,
+    onSaveSettings: (PomodoroConfiguration) -> Unit,
     onBackToFocusSelector: () -> Unit = {}
 ) {
     Box(
@@ -97,35 +97,26 @@ fun PomodoroDesktopLayout(
             ) {
                 PomodoroContent(
                     pomodoro = pomodoro,
+                    phaseTitle = phaseTitle,
                     isPlayPomodoro = isPlayPomodoro,
                     timerLeft = timerLeft,
                     speedTime = speedTime,
                     completedPomodoros = completedPomodoros,
-                    totalPomodoros = settings.cyclesBeforeLongBreak.value,
+                    totalPomodoros = configuration.cyclesBeforeLongBreak,
                     onPlayPause = onPlayPause,
                     onSpeedChange = onSpeedChange,
-                    onDialogToggle = onDialogToggle
+                    onDialogToggle = { onAbout() }
                 )
             }
         }
 
-        if (isShowDialog) {
-            CustomDialog(
-                textColor = pomodoro.textColor,
-                backgroundColor = pomodoro.backgroundColor,
-                onCloseDialog = { onDialogToggle(false) }
-            )
-        }
-
         if (isShowSettingsDialog) {
             SettingsDialog(
-                settings = settings,
+                configuration = configuration,
                 textColor = pomodoro.textColor,
                 backgroundColor = pomodoro.backgroundColor,
                 onCloseDialog = { onSettingsToggle(false) },
-                onSaveSettings = {
-                    onSettingsToggle(true)
-                }
+                onSaveSettings = onSaveSettings,
             )
         }
     }

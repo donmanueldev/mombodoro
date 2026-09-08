@@ -48,7 +48,7 @@ fun CustomDialog(
                 ) {
                     Text(
                         modifier = Modifier.weight(1f),
-                        text = "About",
+                        text = "Acerca de",
                         fontSize = 16.sp,
                         fontFamily = GetFontPoppinsSemiBold(),
                         color = textColor
@@ -75,13 +75,13 @@ fun CustomDialog(
                 )
 
                 ContentAboutApp(
-                    title = "Developer",
+                    title = "Desarrollador",
                     content = "manuelduarte077",
                     textColor = textColor
                 )
 
                 ContentAboutApp(
-                    title = "Version",
+                    title = "Versión",
                     content = "1.0.0",
                     textColor = textColor
                 )

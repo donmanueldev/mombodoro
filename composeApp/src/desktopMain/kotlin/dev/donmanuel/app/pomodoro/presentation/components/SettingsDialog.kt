@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import dev.donmanuel.app.pomodoro.data.PomodoroSettings
+import dev.donmanuel.app.pomodoro.data.PomodoroConfiguration
 import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
 import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 import org.jetbrains.compose.resources.painterResource
@@ -25,12 +25,14 @@ import pomodoro.composeapp.generated.resources.ic_close
 
 @Composable
 fun SettingsDialog(
-    settings: PomodoroSettings,
+    configuration: PomodoroConfiguration,
     textColor: Color,
     backgroundColor: Color,
     onCloseDialog: () -> Unit,
-    onSaveSettings: (PomodoroSettings) -> Unit
+    onSaveSettings: (PomodoroConfiguration) -> Unit
 ) {
+    var draft by remember(configuration) { mutableStateOf(configuration) }
+
     Dialog(onDismissRequest = { onCloseDialog() }) {
         Surface(
             modifier = Modifier
@@ -51,7 +53,7 @@ fun SettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Settings",
+                        text = "Ajustes",
                         fontFamily = GetFontPoppinsSemiBold(),
                         fontSize = 18.sp,
                         color = textColor
@@ -65,51 +67,51 @@ fun SettingsDialog(
                             },
                         painter = painterResource(Res.drawable.ic_close),
                         colorFilter = ColorFilter.tint(color = textColor.copy(alpha = 0.5f)),
-                        contentDescription = "Close"
+                        contentDescription = "Cerrar"
                     )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Focus Time (minutes)",
-                    value = settings.focusTime.value / 60,
+                    title = "Tiempo de enfoque (minutos)",
+                    value = draft.focusSeconds / 60,
                     textColor = textColor,
                     onValueChange = { newValue ->
-                        settings.focusTime.value = newValue * 60
+                        draft = draft.copy(focusSeconds = newValue * 60)
                     }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Short Break (minutes)",
-                    value = settings.shortBreakTime.value / 60,
+                    title = "Descanso corto (minutos)",
+                    value = draft.shortBreakSeconds / 60,
                     textColor = textColor,
                     onValueChange = { newValue ->
-                        settings.shortBreakTime.value = newValue * 60
+                        draft = draft.copy(shortBreakSeconds = newValue * 60)
                     }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Long Break (minutes)",
-                    value = settings.longBreakTime.value / 60,
+                    title = "Descanso largo (minutos)",
+                    value = draft.longBreakSeconds / 60,
                     textColor = textColor,
                     onValueChange = { newValue ->
-                        settings.longBreakTime.value = newValue * 60
+                        draft = draft.copy(longBreakSeconds = newValue * 60)
                     }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TimeSettingItem(
-                    title = "Cycles Before Long Break",
-                    value = settings.cyclesBeforeLongBreak.value,
+                    title = "Ciclos antes del descanso largo",
+                    value = draft.cyclesBeforeLongBreak,
                     textColor = textColor,
                     onValueChange = { newValue ->
-                        settings.cyclesBeforeLongBreak.value = newValue
+                        draft = draft.copy(cyclesBeforeLongBreak = newValue)
                     },
                     minValue = 1,
                     maxValue = 10
@@ -119,7 +121,7 @@ fun SettingsDialog(
 
                 Button(
                     onClick = {
-                        onSaveSettings(settings)
+                        onSaveSettings(draft)
                         onCloseDialog()
                     },
                     shape = RoundedCornerShape(8.dp),
@@ -129,7 +131,7 @@ fun SettingsDialog(
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
                     Text(
-                        text = "Save Settings",
+                        text = "Guardar y reiniciar",
                         fontFamily = GetFontPoppinsMedium(),
                         color = backgroundColor
                     )

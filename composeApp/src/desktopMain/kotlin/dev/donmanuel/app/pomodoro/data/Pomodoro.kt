@@ -7,8 +7,8 @@ import pomodoro.composeapp.generated.resources.ic_break
 import pomodoro.composeapp.generated.resources.ic_focus
 
 enum class Pomodoro(
-    var title: String,
-    var timer: Int,
+    val title: String,
+    val timer: Int,
     val textColor: Color,
     val icon: DrawableResource,
     val iconColor: Color,
@@ -38,7 +38,7 @@ enum class Pomodoro(
         buttonColorPrimary = Color(0xFF8CE8A1),
         buttonColorSecond = Color(0xFFDAFAE0)
     ),
-    
+
     LONG_BREAK(
         title = "Long Break",
         timer = 900,

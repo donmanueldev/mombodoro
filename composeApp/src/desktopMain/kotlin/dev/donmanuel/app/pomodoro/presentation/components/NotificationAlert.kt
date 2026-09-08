@@ -4,7 +4,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.graphics.Color
 import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
 import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
@@ -14,17 +13,16 @@ import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
  */
 @Composable
 fun NotificationAlert(
-    showNotification: MutableState<Boolean>,
+    isVisible: Boolean,
     title: String,
     message: String,
     backgroundColor: Color,
     textColor: Color,
     onDismiss: () -> Unit
 ) {
-    if (showNotification.value) {
+    if (isVisible) {
         AlertDialog(
             onDismissRequest = {
-                showNotification.value = false
                 onDismiss()
             },
             title = {
@@ -44,7 +42,6 @@ fun NotificationAlert(
             confirmButton = {
                 Button(
                     onClick = {
-                        showNotification.value = false
                         onDismiss()
                     }
                 ) {

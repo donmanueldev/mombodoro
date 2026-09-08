@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.data.Speed
+import dev.donmanuel.app.pomodoro.data.TimerSpeed
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_fast_foward
@@ -36,13 +36,14 @@ import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 @Composable
 fun PomodoroContent(
     pomodoro: Pomodoro,
+    phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
-    speedTime: Speed,
+    speedTime: TimerSpeed,
     completedPomodoros: Int = 0,
     totalPomodoros: Int = 4,
     onPlayPause: (Boolean) -> Unit,
-    onSpeedChange: (Speed) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
     onDialogToggle: (Boolean) -> Unit
 ) {
     Surface(
@@ -57,12 +58,12 @@ fun PomodoroContent(
             Image(
                 modifier = Modifier.size(22.dp),
                 painter = painterResource(pomodoro.icon),
-                contentDescription = "Icon Pomodoro"
+                contentDescription = null
             )
 
             Text(
                 modifier = Modifier.padding(start = 6.dp),
-                text = pomodoro.title,
+                text = phaseTitle,
                 fontFamily = GetFontPoppinsSemiBold(),
                 fontSize = 14.sp,
                 color = pomodoro.textColor
@@ -114,12 +115,12 @@ fun PomodoroContent(
                 containerColor = pomodoro.buttonColorSecond,
             ),
             contentPadding = PaddingValues(0.dp),
-            onClick = { onDialogToggle(!isPlayPomodoro) }
+            onClick = { onDialogToggle(true) }
         ) {
             Image(
                 modifier = Modifier.size(18.dp),
                 painter = painterResource(Res.drawable.ic_menu),
-                contentDescription = ""
+                contentDescription = "Abrir información"
             )
         }
 
@@ -139,7 +140,7 @@ fun PomodoroContent(
                     else
                         Res.drawable.ic_pause
                 ),
-                contentDescription = ""
+                contentDescription = if (isPlayPomodoro) "Pausar temporizador" else "Iniciar temporizador"
             )
         }
 
@@ -151,21 +152,21 @@ fun PomodoroContent(
             ),
             contentPadding = PaddingValues(0.dp),
             onClick = {
-                onSpeedChange(if (speedTime == Speed.NORMAL) Speed.FAST else Speed.NORMAL)
+                onSpeedChange(if (speedTime == TimerSpeed.NORMAL) TimerSpeed.FAST else TimerSpeed.NORMAL)
             }
         ) {
             Image(
                 modifier = Modifier.size(18.dp),
                 painter = painterResource(Res.drawable.ic_fast_foward),
-                contentDescription = ""
+                contentDescription = "Cambiar velocidad"
             )
         }
     }
 
-    if (speedTime == Speed.FAST) {
+    if (speedTime == TimerSpeed.FAST) {
         Text(
             modifier = Modifier.padding(top = 16.dp),
-            text = "Speed is Fast",
+            text = "Velocidad rápida",
             fontFamily = GetFontPoppinsMedium(),
             color = pomodoro.textColor.copy(alpha = 0.5f),
             fontSize = 12.sp

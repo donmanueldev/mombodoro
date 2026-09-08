@@ -4,15 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -23,32 +15,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.data.PomodoroSettings
-import dev.donmanuel.app.pomodoro.data.Speed
+import dev.donmanuel.app.pomodoro.data.PomodoroConfiguration
+import dev.donmanuel.app.pomodoro.data.TimerSpeed
 import dev.donmanuel.app.pomodoro.presentation.components.PomodoroContent
 import dev.donmanuel.app.pomodoro.presentation.components.SettingsDialog
 import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.utils.CustomDialog
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_settings
 
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun PomodoroMobileLayout(
     pomodoro: Pomodoro,
+    phaseTitle: String,
     isPlayPomodoro: Boolean,
     timerLeft: Int,
-    speedTime: Speed,
-    isShowDialog: Boolean,
+    speedTime: TimerSpeed,
     isShowSettingsDialog: Boolean,
-    settings: PomodoroSettings,
+    configuration: PomodoroConfiguration,
     completedPomodoros: Int,
     onPlayPause: (Boolean) -> Unit,
-    onSpeedChange: (Speed) -> Unit,
-    onDialogToggle: (Boolean) -> Unit,
+    onSpeedChange: (TimerSpeed) -> Unit,
+    onAbout: () -> Unit,
     onSettingsToggle: (Boolean) -> Unit,
+    onSaveSettings: (PomodoroConfiguration) -> Unit,
     onBackToFocusSelector: () -> Unit = {}
 ) {
     Box(
@@ -107,35 +98,26 @@ fun PomodoroMobileLayout(
             ) {
                 PomodoroContent(
                     pomodoro = pomodoro,
+                    phaseTitle = phaseTitle,
                     isPlayPomodoro = isPlayPomodoro,
                     timerLeft = timerLeft,
                     speedTime = speedTime,
                     completedPomodoros = completedPomodoros,
-                    totalPomodoros = settings.cyclesBeforeLongBreak.value,
+                    totalPomodoros = configuration.cyclesBeforeLongBreak,
                     onPlayPause = onPlayPause,
                     onSpeedChange = onSpeedChange,
-                    onDialogToggle = onDialogToggle
+                    onDialogToggle = { onAbout() }
                 )
             }
         }
 
-        if (isShowDialog) {
-            CustomDialog(
-                textColor = pomodoro.textColor,
-                backgroundColor = pomodoro.backgroundColor,
-                onCloseDialog = { onDialogToggle(false) }
-            )
-        }
-
         if (isShowSettingsDialog) {
             SettingsDialog(
-                settings = settings,
+                configuration = configuration,
                 textColor = pomodoro.textColor,
                 backgroundColor = pomodoro.backgroundColor,
                 onCloseDialog = { onSettingsToggle(false) },
-                onSaveSettings = {
-                    onSettingsToggle(false)
-                }
+                onSaveSettings = onSaveSettings,
             )
         }
     }
