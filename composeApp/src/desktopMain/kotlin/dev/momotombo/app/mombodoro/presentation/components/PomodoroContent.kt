@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -21,17 +23,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.data.TimerSpeed
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_fast_foward
 import pomodoro.composeapp.generated.resources.ic_menu
 import pomodoro.composeapp.generated.resources.ic_pause
 import pomodoro.composeapp.generated.resources.ic_play
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsBold
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
+import dev.momotombo.app.mombodoro.data.Pomodoro
+import dev.momotombo.app.mombodoro.data.TimerSpeed
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsBold
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
 @Composable
 fun PomodoroContent(
@@ -44,8 +46,39 @@ fun PomodoroContent(
     totalPomodoros: Int = 4,
     onPlayPause: (Boolean) -> Unit,
     onSpeedChange: (TimerSpeed) -> Unit,
+    onPhaseChange: (Pomodoro) -> Unit,
     onDialogToggle: (Boolean) -> Unit
 ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 20.dp),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Pomodoro.entries.forEach { phase ->
+            val selected = phase == pomodoro
+            Surface(
+                modifier = Modifier
+                    .padding(horizontal = 3.dp)
+                    .clickable { onPhaseChange(phase) },
+                color = if (selected) pomodoro.textColor.copy(alpha = 0.18f) else pomodoro.backgroundColor.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    text = when (phase) {
+                        Pomodoro.FOCUS -> "Enfoque"
+                        Pomodoro.BREAK -> "Descanso"
+                        Pomodoro.LONG_BREAK -> "Largo"
+                    },
+                    fontFamily = GetFontPoppinsSemiBold(),
+                    fontSize = 13.sp,
+                    color = pomodoro.textColor.copy(alpha = if (selected) 1f else 0.7f),
+                )
+            }
+        }
+    }
+
     Surface(
         color = pomodoro.buttonColorSecond,
         shape = RoundedCornerShape(100.dp),
@@ -72,11 +105,11 @@ fun PomodoroContent(
     }
 
     Text(
-        text = String.format("%02d\n%02d", timerLeft / 60, timerLeft % 60),
+        text = String.format("%02d:%02d", timerLeft / 60, timerLeft % 60),
         fontFamily = GetFontPoppinsBold(),
-        fontSize = 168.sp,
+        fontSize = 118.sp,
         textAlign = TextAlign.Center,
-        lineHeight = 148.sp,
+        lineHeight = 118.sp,
         color = pomodoro.textColor
     )
     

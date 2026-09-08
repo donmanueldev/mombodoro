@@ -2,12 +2,14 @@ package dev.momotombo.app.mombodoro.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,9 +18,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import dev.donmanuel.app.pomodoro.data.PomodoroConfiguration
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
+import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_close

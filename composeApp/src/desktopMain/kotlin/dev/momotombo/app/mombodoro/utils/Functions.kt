@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_close

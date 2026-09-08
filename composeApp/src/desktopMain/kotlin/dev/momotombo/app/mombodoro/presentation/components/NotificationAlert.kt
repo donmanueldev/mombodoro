@@ -5,8 +5,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
 /**
  * Componente para mostrar una notificación como un AlertDialog

@@ -1,10 +1,10 @@
 package dev.momotombo.app.mombodoro.presentation.components
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -15,15 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
-import org.jetbrains.compose.resources.ExperimentalResourceApi
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
 import pomodoro.composeapp.generated.resources.ic_minus
 import pomodoro.composeapp.generated.resources.ic_plus
 
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun TimeSettingItem(
     title: String,

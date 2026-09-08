@@ -18,9 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.donmanuel.app.pomodoro.data.Pomodoro
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsMedium
-import dev.donmanuel.app.pomodoro.presentation.ui.theme.GetFontPoppinsSemiBold
+import dev.momotombo.app.mombodoro.data.Pomodoro
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsMedium
+import dev.momotombo.app.mombodoro.presentation.ui.theme.GetFontPoppinsSemiBold
 
 @Composable
 fun FocusTypeSelector(
@@ -28,7 +28,7 @@ fun FocusTypeSelector(
 ) {
     val backgroundColor = Pomodoro.FOCUS.backgroundColor
     val textColor = Pomodoro.FOCUS.textColor
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -45,7 +45,7 @@ fun FocusTypeSelector(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
         )
-        
+
         FocusTypeCard(
             title = "Pomodoro",
             focusTime = 25,
@@ -56,9 +56,9 @@ fun FocusTypeSelector(
             textColor = textColor,
             onClick = { onSelectFocusType("Pomodoro", 25 * 60, 5 * 60, 15 * 60, 4) }
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         FocusTypeCard(
             title = "Estudio",
             focusTime = 50,
@@ -69,7 +69,7 @@ fun FocusTypeSelector(
             textColor = textColor,
             onClick = { onSelectFocusType("Estudio", 50 * 60, 10 * 60, 30 * 60, 3) }
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
         FocusTypeCard(
@@ -82,9 +82,9 @@ fun FocusTypeSelector(
             textColor = textColor,
             onClick = { onSelectFocusType("Trabajo", 45 * 60, 5 * 60, 15 * 60, 4) }
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         FocusTypeCard(
             title = "Sesión Corta",
             focusTime = 15,
@@ -95,11 +95,11 @@ fun FocusTypeSelector(
             textColor = textColor,
             onClick = { onSelectFocusType("Sesión Corta", 15 * 60, 3 * 60, 10 * 60, 5) }
         )
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Button(
-            onClick = { 
+            onClick = {
                 onSelectFocusType("Personalizado", 25 * 60, 5 * 60, 15 * 60, 4)
             },
             colors = ButtonDefaults.buttonColors(
@@ -154,7 +154,7 @@ fun FocusTypeCard(
                 color = textColor,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
