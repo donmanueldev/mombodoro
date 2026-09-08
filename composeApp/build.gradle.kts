@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
 }
 
 kotlin {
@@ -38,10 +37,23 @@ compose.desktop {
     application {
         mainClass = "dev.donmanuel.app.pomodoro.MainKt"
 
+        if (System.getProperty("os.name") == "Mac OS X") {
+            jvmArgs += listOf(
+                "-Xdock:name=Mombo",
+                "-Xdock:icon=${project.file("src/desktopMain/resources/Mombo.icns").absolutePath}",
+            )
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "dev.donmanuel.app.pomodoro"
+            packageName = "Mombo"
             packageVersion = "1.0.0"
+
+            macOS {
+                iconFile.set(project.file("src/desktopMain/resources/Mombo.icns"))
+                dockName = "Mombo"
+                bundleID = "dev.donmanuel.mombo"
+            }
         }
     }
 }
