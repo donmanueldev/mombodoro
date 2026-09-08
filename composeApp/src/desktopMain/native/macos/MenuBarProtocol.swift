@@ -11,12 +11,34 @@ struct TimerState: Equatable {
 enum MenuBarCommand: Equatable {
     case idle
     case state(TimerState)
+    case notification(NativeNotification)
+    case openNotificationSettings
+}
+
+struct NativeNotification: Equatable {
+    let title: String
+    let message: String
 }
 
 enum MenuBarProtocol {
     static func command(from line: String) -> MenuBarCommand? {
         let parts = line.split(separator: "\t", omittingEmptySubsequences: false)
         if parts.count == 1, parts[0] == "idle" { return .idle }
+        if parts.count == 1, parts[0] == "openNotificationSettings" { return .openNotificationSettings }
+
+        if
+            parts.count == 3,
+            parts[0] == "notification",
+            let title = decode(parts[1]),
+            let message = decode(parts[2])
+        {
+            return .notification(
+                NativeNotification(
+                    title: title,
+                    message: message
+                )
+            )
+        }
 
         guard
             parts.count == 6,

@@ -11,8 +11,21 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.Base64
 import java.util.concurrent.TimeUnit
+import java.nio.file.Path
+import kotlin.io.path.exists
 
-enum class MacMenuBarAction { Toggle, Show, Hide, Exit }
+enum class MacMenuBarAction {
+    Toggle,
+    Show,
+    Hide,
+    Exit,
+    NotificationOpened,
+    NotificationPermissionGranted,
+    NotificationPermissionDenied,
+    NotificationDeliveryFailed,
+}
+
+enum class MacNotificationStatus { Checking, Enabled, Disabled }
 
 /** Line protocol shared with the native macOS status-bar host. */
 internal object MacMenuBarProtocol {
@@ -30,6 +43,12 @@ internal object MacMenuBarProtocol {
             if (session.isRunning) "1" else "0",
         ).joinToString("\t")
     }
+
+    fun notificationCommand(notification: TimerNotification): String = listOf(
+        "notification",
+        notification.title.encode(),
+        notification.message.encode(),
+    ).joinToString("\t")
 
     private fun String.encode(): String = Base64.getEncoder().encodeToString(toByteArray())
 }
@@ -54,6 +73,14 @@ class MacMenuBarHost private constructor(private val process: Process) {
         send(MacMenuBarProtocol.updateCommand(session, selectedTaskTitle))
     }
 
+    fun notify(notification: TimerNotification) {
+        send(MacMenuBarProtocol.notificationCommand(notification))
+    }
+
+    fun openNotificationSettings() {
+        send("openNotificationSettings")
+    }
+
     fun close() {
         runCatching { writer.close() }
         terminate(process.toHandle())
@@ -71,7 +98,7 @@ class MacMenuBarHost private constructor(private val process: Process) {
 
     companion object {
         fun start(): MacMenuBarHost? {
-            val executable = System.getProperty("mombodoro.menuHost") ?: return null
+            val executable = MacMenuBarHostResources.executable() ?: return null
             return runCatching {
                 terminatePreviousHosts(executable)
                 val process = ProcessBuilder(executable).apply {
@@ -108,5 +135,18 @@ class MacMenuBarHost private constructor(private val process: Process) {
             }.getOrDefault(false)
             if (!stopped && handle.isAlive) handle.destroyForcibly()
         }
+    }
+}
+
+private object MacMenuBarHostResources {
+    private const val applicationResourcesProperty = "compose.application.resources.dir"
+    private const val executableName = "MombodoroNotificationHost"
+
+    fun executable(): String? {
+        val resources = System.getProperty(applicationResourcesProperty) ?: return null
+        val executable = Path.of(resources)
+            .resolve("MombodoroNotificationHost.app/Contents/MacOS/$executableName")
+
+        return executable.takeIf { it.exists() && it.toFile().canExecute() }?.toString()
     }
 }

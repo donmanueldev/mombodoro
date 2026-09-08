@@ -1,4 +1,5 @@
 import Cocoa
+import UserNotifications
 
 private final class TimerRingView: NSView {
     var progress: CGFloat = 1 { didSet { needsDisplay = true } }
@@ -134,11 +135,19 @@ private final class TimerPopoverController: NSViewController {
     @objc private func toggleTimer() { onToggle?() }
 }
 
-final class MenuBarHost: NSObject, NSApplicationDelegate {
+final class MenuBarHost: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    private enum NotificationAuthorization {
+        case pending
+        case authorized
+        case denied
+    }
+
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
     private let popoverController = TimerPopoverController()
     private let popover = NSPopover()
+    private var notificationAuthorization: NotificationAuthorization = .pending
+    private var pendingNotifications: [NativeNotification] = []
     private lazy var statusImage: NSImage? = {
         let iconPath = ProcessInfo.processInfo.environment["MOMBODORO_STATUS_ICON"]
         let image =
@@ -150,6 +159,25 @@ final class MenuBarHost: NSObject, NSApplicationDelegate {
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let notifications = UNUserNotificationCenter.current()
+        notifications.delegate = self
+        notifications.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, _ in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                guard granted else {
+                    self.notificationAuthorization = .denied
+                    self.emit("notificationPermissionDenied")
+                    self.pendingNotifications.removeAll()
+                    return
+                }
+
+                self.notificationAuthorization = .authorized
+                self.emit("notificationPermissionGranted")
+                let queuedNotifications = self.pendingNotifications
+                self.pendingNotifications.removeAll()
+                queuedNotifications.forEach(self.deliver)
+            }
+        }
         configureStatusButton()
         configurePopover()
         configureMenu()
@@ -212,9 +240,63 @@ final class MenuBarHost: NSObject, NSApplicationDelegate {
             showIdleStatus()
         case .state(let state):
             showActiveStatus(state)
+        case .notification(let notification):
+            deliver(notification)
+        case .openNotificationSettings:
+            openNotificationSettings()
         case nil:
             return
         }
+    }
+
+    private func deliver(_ notification: NativeNotification) {
+        switch notificationAuthorization {
+        case .pending:
+            pendingNotifications.append(notification)
+            return
+        case .denied:
+            emit("notificationPermissionDenied")
+            return
+        case .authorized:
+            break
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = notification.title
+        content.body = notification.message
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request) { [weak self] error in
+            guard error != nil else { return }
+            DispatchQueue.main.async { self?.emit("notificationDeliveryFailed") }
+        }
+    }
+
+    private func openNotificationSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        emit("notificationOpened")
+        completionHandler()
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
     private func showIdleStatus() {
