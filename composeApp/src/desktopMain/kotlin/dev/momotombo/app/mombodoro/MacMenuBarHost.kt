@@ -15,7 +15,6 @@ import java.nio.file.Path
 import kotlin.io.path.exists
 
 enum class MacMenuBarAction {
-    Toggle,
     Show,
     Hide,
     Exit,
@@ -32,17 +31,10 @@ internal object MacMenuBarProtocol {
     fun actionFrom(value: String): MacMenuBarAction? =
         MacMenuBarAction.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
 
-    fun updateCommand(session: PomodoroSession?, selectedTaskTitle: String?): String = when (session) {
-        null -> "idle"
-        else -> listOf(
-            "state",
-            session.remainingSeconds.toString(),
-            session.configuration.durationFor(session.phase).toString(),
-            session.phase.title.encode(),
-            selectedTaskTitle?.encode() ?: "-",
-            if (session.isRunning) "1" else "0",
-        ).joinToString("\t")
-    }
+    fun timerCommand(session: PomodoroSession?): String = listOf(
+        "timer",
+        (session?.let(::timerTitle) ?: "--:--").encode(),
+    ).joinToString("\t")
 
     fun notificationCommand(notification: TimerNotification): String = listOf(
         "notification",
@@ -51,6 +43,11 @@ internal object MacMenuBarProtocol {
     ).joinToString("\t")
 
     private fun String.encode(): String = Base64.getEncoder().encodeToString(toByteArray())
+
+    private fun timerTitle(session: PomodoroSession): String = "%02d:%02d".format(
+        session.remainingSeconds / 60,
+        session.remainingSeconds % 60,
+    )
 }
 
 class MacMenuBarHost private constructor(private val process: Process) {
@@ -69,8 +66,8 @@ class MacMenuBarHost private constructor(private val process: Process) {
         }
     }
 
-    fun update(session: PomodoroSession?, selectedTaskTitle: String?) {
-        send(MacMenuBarProtocol.updateCommand(session, selectedTaskTitle))
+    fun update(session: PomodoroSession?) {
+        send(MacMenuBarProtocol.timerCommand(session))
     }
 
     fun notify(notification: TimerNotification) {

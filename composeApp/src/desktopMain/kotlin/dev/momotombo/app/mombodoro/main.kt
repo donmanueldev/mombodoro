@@ -32,7 +32,6 @@ private fun launchMombodoro() = application {
     val trayState = rememberTrayState()
     val timerState = remember { PomodoroTimerState() }
     val taskController = remember { FocusTasksController() }
-    var selectedTaskTitle by remember { mutableStateOf<String?>(null) }
     var isWindowActive by remember { mutableStateOf(false) }
     var shouldActivateWindow by remember { mutableStateOf(false) }
     var notificationSystemMessage by remember { mutableStateOf<String?>(null) }
@@ -47,16 +46,11 @@ private fun launchMombodoro() = application {
         taskController.load(withContext(kotlinx.coroutines.Dispatchers.IO) { FocusTaskRepository.openDefault() })
     }
 
-    LaunchedEffect(macMenuBarHost) {
-        val host = macMenuBarHost ?: return@LaunchedEffect
-        snapshotFlow { timerState.session to selectedTaskTitle }
-            .collect { (session, taskTitle) -> host.update(session, taskTitle) }
-    }
+    SideEffect { macMenuBarHost?.update(timerState.session) }
 
     LaunchedEffect(macMenuBarHost) {
         macMenuBarHost?.actions?.collect { action ->
             when (action) {
-                MacMenuBarAction.Toggle -> timerState.toggleRunning()
                 MacMenuBarAction.Show -> windowState.isMinimized = false
                 MacMenuBarAction.Hide -> windowState.isMinimized = true
                 MacMenuBarAction.Exit -> exitApplication()
@@ -174,7 +168,6 @@ private fun launchMombodoro() = application {
             timerState = timerState,
             taskController = taskController,
             onExit = ::exitApplication,
-            onSelectedTaskTitleChange = { selectedTaskTitle = it },
             showNotificationAlert = isWindowActive && !windowState.isMinimized,
             notificationSystemMessage = notificationSystemMessage,
             onDismissNotificationSystemMessage = { notificationSystemMessage = null },

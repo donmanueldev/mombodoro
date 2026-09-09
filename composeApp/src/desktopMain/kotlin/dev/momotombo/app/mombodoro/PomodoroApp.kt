@@ -24,7 +24,6 @@ fun FrameWindowScope.PomodoroApp(
     timerState: PomodoroTimerState,
     taskController: FocusTasksController,
     onExit: () -> Unit,
-    onSelectedTaskTitleChange: (String?) -> Unit,
     showNotificationAlert: Boolean,
     notificationSystemMessage: String?,
     onDismissNotificationSystemMessage: () -> Unit,
@@ -35,10 +34,6 @@ fun FrameWindowScope.PomodoroApp(
     var isShowSettingsDialog by remember { mutableStateOf(false) }
     var showCustomDialog by remember { mutableStateOf(false) }
     val taskScope = rememberCoroutineScope()
-    val selectedTaskTitle = taskController.tasks.firstOrNull { it.id == taskController.selectedTaskId }?.title
-
-    SideEffect { onSelectedTaskTitleChange(selectedTaskTitle) }
-
     fun selectFocusType(configuration: PomodoroConfiguration) {
         timerState.selectFocusType(configuration)
         isShowDialog = false

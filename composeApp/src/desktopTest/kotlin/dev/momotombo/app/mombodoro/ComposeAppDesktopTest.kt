@@ -143,17 +143,17 @@ class ComposeAppDesktopTest {
     }
 
     @Test
-    fun `menu-bar state command keeps all fields in a stable order`() {
+    fun `menu-bar timer command contains the rendered session time`() {
         val session = PomodoroSession.start(testConfiguration()).copy(
             remainingSeconds = 42,
             isRunning = true,
         )
 
-        val command = MacMenuBarProtocol.updateCommand(session, "Preparar presentación")
+        val command = MacMenuBarProtocol.timerCommand(session)
         val fields = command.split("\t")
 
-        assertEquals(listOf("state", "42", "1500", "RW5mb3F1ZQ==", "UHJlcGFyYXIgcHJlc2VudGFjacOzbg==", "1"), fields)
-        assertEquals("idle", MacMenuBarProtocol.updateCommand(null, null))
+        assertEquals(listOf("timer", "MDA6NDI="), fields)
+        assertEquals(listOf("timer", "LS06LS0="), MacMenuBarProtocol.timerCommand(null).split("\t"))
         assertEquals(MacMenuBarAction.Hide, MacMenuBarProtocol.actionFrom("hide"))
         assertEquals(null, MacMenuBarProtocol.actionFrom("unsupported"))
     }
