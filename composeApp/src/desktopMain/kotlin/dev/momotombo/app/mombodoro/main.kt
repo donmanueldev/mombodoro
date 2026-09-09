@@ -1,7 +1,6 @@
 package dev.momotombo.app.mombodoro
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
@@ -26,6 +25,9 @@ fun main() {
 
     launchMombodoro()
 }
+
+private const val MinimumWindowWidth = 1024
+private const val MinimumWindowHeight = 720
 
 private fun launchMombodoro() = application {
     val windowState = rememberWindowState(size = DpSize(1280.dp, 820.dp))
@@ -136,7 +138,6 @@ private fun launchMombodoro() = application {
         title = "Mombodoro",
         icon = painterResource(Res.drawable.mombo_app_icon),
     ) {
-        val density = LocalDensity.current
         DisposableEffect(window) {
             val listener = object : WindowAdapter() {
                 override fun windowGainedFocus(event: WindowEvent) {
@@ -153,9 +154,11 @@ private fun launchMombodoro() = application {
         }
 
         SideEffect {
+            // AWT expects logical screen points; converting Compose dp to pixels here doubles
+            // the minimum on Retina displays and pushes the layout outside the visible screen.
             window.minimumSize = Dimension(
-                with(density) { 1024.dp.roundToPx() },
-                with(density) { 720.dp.roundToPx() },
+                MinimumWindowWidth,
+                MinimumWindowHeight,
             )
             if (shouldActivateWindow) {
                 window.toFront()
