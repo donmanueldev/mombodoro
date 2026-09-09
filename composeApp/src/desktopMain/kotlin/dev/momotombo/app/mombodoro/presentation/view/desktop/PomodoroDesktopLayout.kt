@@ -29,6 +29,7 @@ import dev.momotombo.app.mombodoro.presentation.components.TasksPanel
 import dev.momotombo.app.mombodoro.presentation.ui.theme.*
 import org.jetbrains.compose.resources.painterResource
 import pomodoro.composeapp.generated.resources.Res
+import pomodoro.composeapp.generated.resources.ic_settings
 import pomodoro.composeapp.generated.resources.ic_tasks
 
 @Composable
@@ -170,22 +171,31 @@ private fun TopBar(
     onOpenTasks: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    Row(
+    Box(
         modifier = Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 32.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Mombodoro", color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 20.sp)
-        Spacer(Modifier.weight(1f))
+        Text(
+            "Mombodoro",
+            modifier = Modifier.align(Alignment.CenterStart),
+            color = AppText,
+            fontFamily = GetFontPoppinsSemiBold(),
+            fontSize = 20.sp,
+        )
         Button(
+            modifier = Modifier.align(Alignment.Center),
             onClick = onChangeSession,
             colors = ButtonDefaults.buttonColors(containerColor = AppSurface, contentColor = AppText),
             border = BorderStroke(1.dp, AppOutline),
             shape = RoundedCornerShape(12.dp),
         ) { Text(configurationName, fontFamily = GetFontPoppinsMedium()) }
-        Spacer(Modifier.weight(1f))
-        TaskButton(isOpen = tasksOpen, onClick = onOpenTasks)
-        Spacer(Modifier.width(12.dp))
-        TextButton("Ajustes", onOpenSettings)
+        Row(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TaskButton(isOpen = tasksOpen, onClick = onOpenTasks)
+            Spacer(Modifier.width(12.dp))
+            SettingsButton(onClick = onOpenSettings)
+        }
     }
 }
 
@@ -206,15 +216,16 @@ private fun WideWorkspace(
     onCompleteSelectedTask: (Long) -> Unit,
 ) {
     BoxWithConstraints(
-        Modifier.fillMaxSize().padding(end = if (tasksVisible) 420.dp else 0.dp),
+        Modifier.fillMaxSize(),
     ) {
-        val workspaceWidth = minOf(maxWidth - 68.dp, 980.dp)
-        Row(
-            modifier = Modifier.width(workspaceWidth).fillMaxHeight().padding(bottom = 32.dp)
-                .align(Alignment.TopCenter),
+        val sidePanelWidth = if (tasksVisible) 420.dp else 0.dp
+        val workspaceWidth = minOf(maxWidth - sidePanelWidth - 68.dp, 980.dp)
+        Box(
+            modifier = Modifier.fillMaxSize().padding(end = sidePanelWidth),
+            contentAlignment = Alignment.TopCenter,
         ) {
             TimerWorkspace(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                modifier = Modifier.width(workspaceWidth).fillMaxHeight().padding(bottom = 32.dp),
                 pomodoro = pomodoro,
                 phaseTitle = phaseTitle,
                 isPlayPomodoro = isPlayPomodoro,
@@ -321,11 +332,21 @@ private fun TimerWorkspace(
 }
 
 @Composable
-private fun TextButton(label: String, onClick: () -> Unit) {
+private fun SettingsButton(onClick: () -> Unit) {
     Button(
+        modifier = Modifier.width(44.dp).height(44.dp),
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = AppText),
-    ) { Text(label, fontFamily = GetFontPoppinsMedium()) }
+        colors = ButtonDefaults.buttonColors(containerColor = AppSurface, contentColor = AppText),
+        border = BorderStroke(1.dp, AppOutline),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp),
+    ) {
+        Image(
+            painter = painterResource(Res.drawable.ic_settings),
+            contentDescription = "Abrir ajustes",
+            colorFilter = ColorFilter.tint(AppText),
+        )
+    }
 }
 
 @Composable
