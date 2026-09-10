@@ -25,9 +25,15 @@ final class MenuBarHost: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func applicationDidFinishLaunching(_ notification: Notification) {
         let notifications = UNUserNotificationCenter.current()
         notifications.delegate = self
-        notifications.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, _ in
+        notifications.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, error in
             DispatchQueue.main.async {
                 guard let self else { return }
+                guard error == nil else {
+                    self.notificationAuthorization = .denied
+                    self.pendingNotifications.removeAll()
+                    self.emit("notificationDeliveryFailed")
+                    return
+                }
                 guard granted else {
                     self.notificationAuthorization = .denied
                     self.emit("notificationPermissionDenied")
@@ -93,6 +99,8 @@ final class MenuBarHost: NSObject, NSApplicationDelegate, UNUserNotificationCent
             showTimer(title)
         case .notification(let notification):
             deliver(notification)
+        case .testNotification(let notification):
+            testNotification(notification)
         case .openNotificationSettings:
             openNotificationSettings()
         case nil:
@@ -125,6 +133,72 @@ final class MenuBarHost: NSObject, NSApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().add(request) { [weak self] error in
             guard error != nil else { return }
             DispatchQueue.main.async { self?.emit("notificationDeliveryFailed") }
+        }
+    }
+
+    private func testNotification(_ notification: NativeNotification) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { [weak self] settings in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                switch settings.authorizationStatus {
+                case .authorized, .provisional, .ephemeral:
+                    self.notificationAuthorization = .authorized
+                    self.deliverTestNotification(notification, using: center)
+                case .denied:
+                    self.notificationAuthorization = .denied
+                    self.emit("notificationTestDenied")
+                case .notDetermined:
+                    self.requestTestAuthorization(for: notification, using: center)
+                @unknown default:
+                    self.emit("notificationTestFailed")
+                }
+            }
+        }
+    }
+
+    private func requestTestAuthorization(
+        for notification: NativeNotification,
+        using center: UNUserNotificationCenter
+    ) {
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                guard error == nil else {
+                    self.emit("notificationTestFailed")
+                    return
+                }
+                guard granted else {
+                    self.notificationAuthorization = .denied
+                    self.emit("notificationTestDenied")
+                    return
+                }
+
+                self.notificationAuthorization = .authorized
+                self.emit("notificationPermissionGranted")
+                self.deliverTestNotification(notification, using: center)
+            }
+        }
+    }
+
+    private func deliverTestNotification(
+        _ notification: NativeNotification,
+        using center: UNUserNotificationCenter
+    ) {
+        let content = UNMutableNotificationContent()
+        content.title = notification.title
+        content.body = notification.message
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "mombodoro-test-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        center.add(request) { [weak self] error in
+            DispatchQueue.main.async {
+                self?.emit(error == nil ? "notificationTestDelivered" : "notificationTestFailed")
+            }
         }
     }
 

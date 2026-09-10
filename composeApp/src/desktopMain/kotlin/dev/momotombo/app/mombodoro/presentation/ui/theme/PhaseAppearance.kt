@@ -18,10 +18,11 @@ val AppSurface = Color(0xFFFFFFFF)
 val AppText = Color(0xFF331E1C)
 val AppMutedText = Color(0xFF765F5C)
 val AppOutline = Color(0xFFE9DCD8)
+val AppFocusAccent = Color(0xFFB24B3F)
 
 val Pomodoro.appearance: PhaseAppearance
     get() = when (this) {
-        Pomodoro.FOCUS -> PhaseAppearance("Enfoque", Res.drawable.ic_focus, Color(0xFFC85B4D))
+        Pomodoro.FOCUS -> PhaseAppearance("Enfoque", Res.drawable.ic_focus, AppFocusAccent)
         Pomodoro.BREAK -> PhaseAppearance("Descanso corto", Res.drawable.ic_break, Color(0xFF397D78))
         Pomodoro.LONG_BREAK -> PhaseAppearance("Descanso largo", Res.drawable.ic_break, Color(0xFF8E6D3E))
     }

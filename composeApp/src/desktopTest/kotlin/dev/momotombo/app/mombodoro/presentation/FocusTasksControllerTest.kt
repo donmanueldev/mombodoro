@@ -129,6 +129,24 @@ class FocusTasksControllerTest {
         assertEquals(null, reopenedController.selectedTaskId)
     }
 
+    @Test
+    fun `a storage failure is exposed without changing the current task state`() = runBlocking {
+        val controller = FocusTasksController()
+        controller.load(InMemoryFocusTaskStore())
+        controller.add("Preparar presentación")
+        val currentTasks = controller.tasks.toList()
+
+        controller.load(FailingFocusTaskStore())
+
+        assertEquals(currentTasks, controller.tasks)
+        assertEquals("No se pudieron cargar tus tareas.", controller.errorMessage)
+        assertTrue(controller.isReady)
+
+        controller.dismissError()
+
+        assertEquals(null, controller.errorMessage)
+    }
+
     private class InMemoryFocusTaskStore : FocusTaskStore {
         val tasks = mutableListOf<FocusTask>()
         private var nextId = 1L
@@ -152,5 +170,14 @@ class FocusTasksControllerTest {
         override fun delete(id: Long) {
             tasks.removeAll { it.id == id }
         }
+    }
+
+    private class FailingFocusTaskStore : FocusTaskStore {
+        override fun loadAll(): List<FocusTask> = error("Database unavailable")
+        override fun loadSelectedTaskId(): Long? = null
+        override fun add(title: String): FocusTask = error("Database unavailable")
+        override fun updateCompletion(id: Long, isCompleted: Boolean) = error("Database unavailable")
+        override fun saveSelectedTaskId(id: Long?) = error("Database unavailable")
+        override fun delete(id: Long) = error("Database unavailable")
     }
 }

@@ -11,8 +11,16 @@ interface FocusTaskStore {
     fun loadSelectedTaskId(): Long?
     fun add(title: String): FocusTask
     fun updateCompletion(id: Long, isCompleted: Boolean)
+    fun updateCompletionAndSelection(id: Long, isCompleted: Boolean, selectedTaskId: Long?) {
+        updateCompletion(id, isCompleted)
+        saveSelectedTaskId(selectedTaskId)
+    }
     fun saveSelectedTaskId(id: Long?)
     fun delete(id: Long)
+    fun deleteAndSelect(id: Long, selectedTaskId: Long?) {
+        delete(id)
+        saveSelectedTaskId(selectedTaskId)
+    }
 }
 
 class FocusTaskRepository private constructor(private val databasePath: Path) : FocusTaskStore {
@@ -46,7 +54,7 @@ class FocusTaskRepository private constructor(private val databasePath: Path) : 
 
     override fun loadAll(): List<FocusTask> = connection().use { connection ->
         connection.prepareStatement(
-            "SELECT id, title, is_completed FROM focus_tasks ORDER BY is_completed ASC, created_at ASC"
+            "SELECT id, title, is_completed FROM focus_tasks ORDER BY is_completed ASC, created_at ASC, id ASC"
         ).use { statement ->
             statement.executeQuery().use { result ->
                 buildList {
@@ -99,17 +107,27 @@ class FocusTaskRepository private constructor(private val databasePath: Path) : 
         }
     }
 
+    override fun updateCompletionAndSelection(id: Long, isCompleted: Boolean, selectedTaskId: Long?) {
+        connection().use { connection ->
+            connection.autoCommit = false
+            try {
+                connection.prepareStatement("UPDATE focus_tasks SET is_completed = ? WHERE id = ?").use { statement ->
+                    statement.setInt(1, if (isCompleted) 1 else 0)
+                    statement.setLong(2, id)
+                    statement.executeUpdate()
+                }
+                saveSelectedTaskId(connection, selectedTaskId)
+                connection.commit()
+            } catch (exception: Exception) {
+                connection.rollback()
+                throw exception
+            }
+        }
+    }
+
     override fun saveSelectedTaskId(id: Long?) {
         connection().use { connection ->
-            connection.prepareStatement(
-                """
-                INSERT INTO focus_task_selection (id, selected_task_id) VALUES (1, ?)
-                ON CONFLICT(id) DO UPDATE SET selected_task_id = excluded.selected_task_id
-                """.trimIndent()
-            ).use { statement ->
-                if (id == null) statement.setNull(1, java.sql.Types.INTEGER) else statement.setLong(1, id)
-                statement.executeUpdate()
-            }
+            saveSelectedTaskId(connection, id)
         }
     }
 
@@ -119,6 +137,35 @@ class FocusTaskRepository private constructor(private val databasePath: Path) : 
                 statement.setLong(1, id)
                 statement.executeUpdate()
             }
+        }
+    }
+
+    override fun deleteAndSelect(id: Long, selectedTaskId: Long?) {
+        connection().use { connection ->
+            connection.autoCommit = false
+            try {
+                connection.prepareStatement("DELETE FROM focus_tasks WHERE id = ?").use { statement ->
+                    statement.setLong(1, id)
+                    statement.executeUpdate()
+                }
+                saveSelectedTaskId(connection, selectedTaskId)
+                connection.commit()
+            } catch (exception: Exception) {
+                connection.rollback()
+                throw exception
+            }
+        }
+    }
+
+    private fun saveSelectedTaskId(connection: java.sql.Connection, id: Long?) {
+        connection.prepareStatement(
+            """
+            INSERT INTO focus_task_selection (id, selected_task_id) VALUES (1, ?)
+            ON CONFLICT(id) DO UPDATE SET selected_task_id = excluded.selected_task_id
+            """.trimIndent()
+        ).use { statement ->
+            if (id == null) statement.setNull(1, java.sql.Types.INTEGER) else statement.setLong(1, id)
+            statement.executeUpdate()
         }
     }
 

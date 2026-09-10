@@ -21,7 +21,8 @@ import dev.momotombo.app.mombodoro.data.FocusTask
 import dev.momotombo.app.mombodoro.data.Pomodoro
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
 import dev.momotombo.app.mombodoro.data.TimerSpeed
-import dev.momotombo.app.mombodoro.MacNotificationStatus
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsAction
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsState
 import dev.momotombo.app.mombodoro.presentation.components.PomodoroContent
 import dev.momotombo.app.mombodoro.presentation.components.SelectedTaskControl
 import dev.momotombo.app.mombodoro.presentation.components.SettingsPanel
@@ -55,8 +56,8 @@ fun PomodoroDesktopLayout(
     onDeleteTask: (Long) -> Unit,
     onSettingsToggle: (Boolean) -> Unit,
     onSaveSettings: (PomodoroConfiguration) -> Unit,
-    notificationStatus: MacNotificationStatus?,
-    onOpenNotificationSettings: () -> Unit,
+    notificationSettings: NotificationSettingsState?,
+    onNotificationAction: (NotificationSettingsAction) -> Unit,
     onBackToFocusSelector: () -> Unit = {},
 ) {
     var showTasksPanel by remember { mutableStateOf(false) }
@@ -120,8 +121,8 @@ fun PomodoroDesktopLayout(
                 configuration = configuration,
                 onClose = { onSettingsToggle(false) },
                 onSave = onSaveSettings,
-                notificationStatus = notificationStatus,
-                onOpenNotificationSettings = onOpenNotificationSettings,
+                notificationSettings = notificationSettings,
+                onNotificationAction = onNotificationAction,
             )
         }
 

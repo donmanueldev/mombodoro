@@ -3,6 +3,7 @@ import Foundation
 enum MenuBarCommand: Equatable {
     case timer(String)
     case notification(NativeNotification)
+    case testNotification(NativeNotification)
     case openNotificationSettings
 }
 
@@ -22,16 +23,14 @@ enum MenuBarProtocol {
 
         if
             parts.count == 3,
-            parts[0] == "notification",
+            parts[0] == "notification" || parts[0] == "testNotification",
             let title = decode(parts[1]),
             let message = decode(parts[2])
         {
-            return .notification(
-                NativeNotification(
-                    title: title,
-                    message: message
-                )
-            )
+            let notification = NativeNotification(title: title, message: message)
+            return parts[0] == "notification"
+                ? .notification(notification)
+                : .testNotification(notification)
         }
 
         return nil

@@ -55,6 +55,25 @@ class TasksPanelTest {
     }
 
     @Test
+    fun `task row exposes delete without requiring a swipe`() = runComposeUiTest {
+        var deletedTaskId: Long? = null
+        setContent {
+            TasksPanel(
+                tasks = listOf(FocusTask(id = 7, title = "Enviar el correo")),
+                selectedTaskId = 7,
+                onAddTask = {},
+                onSelectTask = {},
+                onToggleTask = {},
+                onDeleteTask = { deletedTaskId = it },
+            )
+        }
+
+        onNodeWithContentDescription("Eliminar tarea: Enviar el correo").performClick()
+
+        assertEquals(7, deletedTaskId)
+    }
+
+    @Test
     fun `task filters default to pending and show completed tasks on demand`() = runComposeUiTest {
         setContent {
             TasksPanel(

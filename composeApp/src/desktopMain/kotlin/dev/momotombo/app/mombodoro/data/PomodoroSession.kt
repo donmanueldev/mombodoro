@@ -70,15 +70,17 @@ data class PomodoroSession(
         isRunning = false,
     )
 
-    fun tick(): TimerTickResult {
-        if (!isRunning || remainingSeconds <= 0) return TimerTickResult(this)
+    fun tick(): TimerTickResult = advanceBy(1)
 
-        val updatedRemainingSeconds = remainingSeconds - 1
+    fun advanceBy(elapsedSeconds: Int): TimerTickResult {
+        require(elapsedSeconds >= 0) { "Elapsed seconds cannot be negative." }
+        if (!isRunning || remainingSeconds <= 0 || elapsedSeconds == 0) return TimerTickResult(this)
+
+        val updatedRemainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
         if (updatedRemainingSeconds > 0) {
-            val event = when (updatedRemainingSeconds) {
-                5 * 60, 3 * 60 -> TimerEvent.TimeWarning(phase, updatedRemainingSeconds)
-                else -> null
-            }
+            val event = listOf(5 * 60, 3 * 60)
+                .lastOrNull { threshold -> remainingSeconds > threshold && updatedRemainingSeconds <= threshold }
+                ?.let { threshold -> TimerEvent.TimeWarning(phase, threshold) }
             return TimerTickResult(copy(remainingSeconds = updatedRemainingSeconds), event)
         }
 

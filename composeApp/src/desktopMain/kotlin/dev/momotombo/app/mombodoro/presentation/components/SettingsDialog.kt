@@ -2,12 +2,12 @@ package dev.momotombo.app.mombodoro.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -61,16 +61,14 @@ fun SettingsDialog(
                         color = textColor
                     )
 
-                    Image(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                                onCloseDialog()
-                            },
-                        painter = painterResource(Res.drawable.ic_close),
-                        colorFilter = ColorFilter.tint(color = textColor.copy(alpha = 0.5f)),
-                        contentDescription = "Cerrar"
-                    )
+                    IconButton(onClick = onCloseDialog, modifier = Modifier.size(44.dp)) {
+                        Image(
+                            modifier = Modifier.size(20.dp),
+                            painter = painterResource(Res.drawable.ic_close),
+                            colorFilter = ColorFilter.tint(color = textColor.copy(alpha = 0.5f)),
+                            contentDescription = "Cerrar"
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

@@ -10,6 +10,8 @@ import dev.momotombo.app.mombodoro.presentation.components.CustomFocusDialog
 import dev.momotombo.app.mombodoro.presentation.components.FocusTypeSelector
 import dev.momotombo.app.mombodoro.presentation.components.NotificationAlert
 import dev.momotombo.app.mombodoro.presentation.FocusTasksController
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsAction
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsState
 import dev.momotombo.app.mombodoro.presentation.view.desktop.PomodoroDesktopLayout
 import dev.momotombo.app.mombodoro.presentation.view.mobile.PomodoroMobileLayout
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
@@ -27,8 +29,8 @@ fun FrameWindowScope.PomodoroApp(
     showNotificationAlert: Boolean,
     notificationSystemMessage: String?,
     onDismissNotificationSystemMessage: () -> Unit,
-    notificationStatus: MacNotificationStatus?,
-    onOpenNotificationSettings: () -> Unit,
+    notificationSettings: NotificationSettingsState?,
+    onNotificationAction: (NotificationSettingsAction) -> Unit,
 ) {
     var isShowDialog by remember { mutableStateOf(false) }
     var isShowSettingsDialog by remember { mutableStateOf(false) }
@@ -75,15 +77,19 @@ fun FrameWindowScope.PomodoroApp(
     val activeSession = timerState.session
 
     MaterialTheme {
-        notificationSystemMessage?.let { message ->
+        val taskErrorMessage = taskController.errorMessage
+        (taskErrorMessage ?: notificationSystemMessage)?.let { message ->
             NotificationAlert(
                 isVisible = true,
-                title = "Avisos de Mombodoro",
+                title = if (taskErrorMessage != null) "Tareas no disponibles" else "Avisos de Mombodoro",
                 message = message,
                 backgroundColor = AppCanvas,
                 textColor = AppText,
                 accentColor = Pomodoro.FOCUS.appearance.accent,
-                onDismiss = onDismissNotificationSystemMessage,
+                onDismiss = {
+                    if (taskErrorMessage != null) taskController.dismissError()
+                    else onDismissNotificationSystemMessage()
+                },
             )
         }
 
@@ -157,8 +163,8 @@ fun FrameWindowScope.PomodoroApp(
                     onDeleteTask = { id -> taskScope.launch { taskController.delete(id) } },
                     onSettingsToggle = { isShowSettingsDialog = it },
                     onSaveSettings = onSaveSettings,
-                    notificationStatus = notificationStatus,
-                    onOpenNotificationSettings = onOpenNotificationSettings,
+                    notificationSettings = notificationSettings,
+                    onNotificationAction = onNotificationAction,
                     onBackToFocusSelector = ::showFocusTypeSelector,
                 )
             } else {

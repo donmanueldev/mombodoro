@@ -7,6 +7,8 @@ import androidx.compose.ui.window.*
 import dev.momotombo.app.mombodoro.data.FocusTaskRepository
 import dev.momotombo.app.mombodoro.data.PomodoroSession
 import dev.momotombo.app.mombodoro.presentation.FocusTasksController
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsAction
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
@@ -26,19 +28,44 @@ fun main() {
     launchMombodoro()
 }
 
-private const val MinimumWindowWidth = 1024
+private const val MinimumWindowWidth = 760
 private const val MinimumWindowHeight = 720
 
 private fun launchMombodoro() = application {
+    val isMacOS = System.getProperty("os.name") == "Mac OS X"
     val windowState = rememberWindowState(size = DpSize(1280.dp, 820.dp))
     val trayState = rememberTrayState()
     val timerState = remember { PomodoroTimerState() }
     val taskController = remember { FocusTasksController() }
     var isWindowActive by remember { mutableStateOf(false) }
     var shouldActivateWindow by remember { mutableStateOf(false) }
-    var notificationSystemMessage by remember { mutableStateOf<String?>(null) }
-    val macMenuBarHost = remember { if (System.getProperty("os.name") == "Mac OS X") MacMenuBarHost.start() else null }
-    var notificationStatus by remember { mutableStateOf(if (macMenuBarHost == null) null else MacNotificationStatus.Checking) }
+    val macMenuBarHostStart = remember {
+        if (isMacOS) MacMenuBarHost.start() else null
+    }
+    val macMenuBarHost = macMenuBarHostStart?.getOrNull()
+    var isMacMenuBarAvailable by remember { mutableStateOf(macMenuBarHost != null) }
+    var notificationSystemMessage by remember {
+        mutableStateOf(
+            if (macMenuBarHostStart?.isFailure == true) {
+                "No se pudo iniciar la integración de macOS. Los avisos usarán el sistema alternativo."
+            } else {
+                null
+            }
+        )
+    }
+    var notificationSettings by remember {
+        mutableStateOf(
+            if (!isMacOS) null
+            else NotificationSettingsState(
+                permission = if (isMacMenuBarAvailable) MacNotificationStatus.Checking else null,
+                test = if (macMenuBarHostStart?.isFailure == true) {
+                    MacNotificationTestStatus.Failed
+                } else {
+                    MacNotificationTestStatus.Idle
+                },
+            )
+        )
+    }
 
     DisposableEffect(macMenuBarHost) {
         onDispose { macMenuBarHost?.close() }
@@ -48,12 +75,17 @@ private fun launchMombodoro() = application {
         taskController.load(withContext(kotlinx.coroutines.Dispatchers.IO) { FocusTaskRepository.openDefault() })
     }
 
-    SideEffect { macMenuBarHost?.update(timerState.session) }
+    SideEffect {
+        if (isMacMenuBarAvailable) macMenuBarHost?.update(timerState.session)
+    }
 
     LaunchedEffect(macMenuBarHost) {
         macMenuBarHost?.actions?.collect { action ->
             when (action) {
-                MacMenuBarAction.Show -> windowState.isMinimized = false
+                MacMenuBarAction.Show -> {
+                    windowState.isMinimized = false
+                    shouldActivateWindow = true
+                }
                 MacMenuBarAction.Hide -> windowState.isMinimized = true
                 MacMenuBarAction.Exit -> exitApplication()
                 MacMenuBarAction.NotificationOpened -> {
@@ -63,11 +95,11 @@ private fun launchMombodoro() = application {
                 }
 
                 MacMenuBarAction.NotificationPermissionGranted -> {
-                    notificationStatus = MacNotificationStatus.Enabled
+                    notificationSettings = notificationSettings?.copy(permission = MacNotificationStatus.Enabled)
                 }
 
                 MacMenuBarAction.NotificationPermissionDenied -> {
-                    notificationStatus = MacNotificationStatus.Disabled
+                    notificationSettings = notificationSettings?.copy(permission = MacNotificationStatus.Disabled)
                     notificationSystemMessage =
                         "Activa las notificaciones para recibir los avisos de Mombodoro."
                 }
@@ -75,6 +107,35 @@ private fun launchMombodoro() = application {
                 MacMenuBarAction.NotificationDeliveryFailed -> {
                     notificationSystemMessage =
                         "Mombodoro no pudo mostrar el aviso. Revisa las notificaciones."
+                }
+
+                MacMenuBarAction.NotificationTestDelivered -> {
+                    notificationSettings = notificationSettings?.copy(
+                        permission = MacNotificationStatus.Enabled,
+                        test = MacNotificationTestStatus.Delivered,
+                    )
+                }
+
+                MacMenuBarAction.NotificationTestDenied -> {
+                    notificationSettings = notificationSettings?.copy(
+                        permission = MacNotificationStatus.Disabled,
+                        test = MacNotificationTestStatus.Denied,
+                    )
+                }
+
+                MacMenuBarAction.NotificationTestFailed -> {
+                    notificationSettings = notificationSettings?.copy(test = MacNotificationTestStatus.Failed)
+                }
+
+                MacMenuBarAction.HostFailed -> {
+                    isMacMenuBarAvailable = false
+                    macMenuBarHost.close()
+                    notificationSettings = notificationSettings?.copy(
+                        permission = null,
+                        test = MacNotificationTestStatus.Failed,
+                    )
+                    notificationSystemMessage =
+                        "La integración de macOS dejó de responder. Los avisos usarán el sistema alternativo."
                 }
             }
         }
@@ -95,26 +156,26 @@ private fun launchMombodoro() = application {
             val runningSession = timerState.session ?: break
             delay(runningSession.speed.delayMillis.milliseconds)
             if (timerState.session?.isRunning != true) break
-
-            val event = timerState.tick()
-            if (event != null) {
-                val notification = timerState.notification ?: continue
-                if (macMenuBarHost != null) {
-                    macMenuBarHost.notify(notification)
-                } else {
-                    trayState.sendNotification(
-                        Notification(
-                            title = notification.title,
-                            message = notification.message,
-                            type = Notification.Type.Info,
-                        )
-                    )
-                }
-            }
+            timerState.tick()
         }
     }
 
-    if (macMenuBarHost == null) {
+    LaunchedEffect(timerState.notification) {
+        val notification = timerState.notification ?: return@LaunchedEffect
+        if (macMenuBarHost != null && isMacMenuBarAvailable) {
+            macMenuBarHost.notify(notification)
+        } else {
+            trayState.sendNotification(
+                Notification(
+                    title = notification.title,
+                    message = notification.message,
+                    type = Notification.Type.Info,
+                )
+            )
+        }
+    }
+
+    if (!isMacMenuBarAvailable) {
         Tray(
             state = trayState,
             icon = painterResource(Res.drawable.mombo_status_icon),
@@ -174,8 +235,27 @@ private fun launchMombodoro() = application {
             showNotificationAlert = isWindowActive && !windowState.isMinimized,
             notificationSystemMessage = notificationSystemMessage,
             onDismissNotificationSystemMessage = { notificationSystemMessage = null },
-            notificationStatus = notificationStatus,
-            onOpenNotificationSettings = { macMenuBarHost?.openNotificationSettings() },
+            notificationSettings = notificationSettings,
+            onNotificationAction = { action ->
+                when (action) {
+                    NotificationSettingsAction.Test -> {
+                        if (macMenuBarHost != null && isMacMenuBarAvailable) {
+                            notificationSettings = notificationSettings?.copy(
+                                test = MacNotificationTestStatus.Testing
+                            )
+                            macMenuBarHost.testNotification()
+                        } else {
+                            notificationSettings = notificationSettings?.copy(
+                                test = MacNotificationTestStatus.Failed
+                            )
+                        }
+                    }
+
+                    NotificationSettingsAction.OpenSystemSettings -> {
+                        macMenuBarHost?.openNotificationSettings()
+                    }
+                }
+            },
         )
     }
 }

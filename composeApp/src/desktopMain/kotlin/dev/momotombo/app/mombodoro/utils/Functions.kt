@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,7 +35,7 @@ fun CustomDialog(
     onCloseDialog: () -> Unit
 ) {
     Dialog(
-        onDismissRequest = {}
+        onDismissRequest = onCloseDialog
     ) {
         Surface(
             modifier = modifier
@@ -61,16 +62,14 @@ fun CustomDialog(
                         modifier = Modifier.weight(1f),
                     )
 
-                    Image(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .clickable {
-                                onCloseDialog()
-                            },
-                        painter = painterResource(Res.drawable.ic_close),
-                        colorFilter = ColorFilter.tint(color = Color.Black.copy(alpha = 0.5f)),
-                        contentDescription = "Cerrar",
-                    )
+                    IconButton(onClick = onCloseDialog, modifier = Modifier.size(44.dp)) {
+                        Image(
+                            modifier = Modifier.size(18.dp),
+                            painter = painterResource(Res.drawable.ic_close),
+                            colorFilter = ColorFilter.tint(color = Color.Black.copy(alpha = 0.5f)),
+                            contentDescription = "Cerrar",
+                        )
+                    }
                 }
 
                 HorizontalDivider(
@@ -104,7 +103,7 @@ fun CustomDialog(
                 AboutLink("Proyecto de Mombodoro", "https://github.com/donmanueldev/PomodoroKT", textColor)
                 AboutLink("Momotombo Dev", "https://momotombo.dev/", textColor)
                 Text(
-                    text = "Versión 1.0.0",
+                    text = "Versión ${System.getProperty("mombodoro.version", "1.0.0")}",
                     modifier = Modifier.padding(top = 16.dp),
                     color = textColor.copy(alpha = 0.5f),
                     fontFamily = GetFontPoppinsMedium(),

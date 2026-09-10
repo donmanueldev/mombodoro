@@ -29,6 +29,9 @@ import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.FocusTask
 import dev.momotombo.app.mombodoro.presentation.ui.theme.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import pomodoro.composeapp.generated.resources.Res
+import pomodoro.composeapp.generated.resources.ic_close
 
 private val taskRowShape = RoundedCornerShape(12.dp)
 private val taskRowHeight = 68.dp
@@ -179,7 +182,7 @@ private fun TaskFilterSelector(
                 ) {
                     Text(
                         filter.label,
-                        color = if (isSelected) Color(0xFFC85B4D) else AppMutedText,
+                        color = if (isSelected) AppFocusAccent else AppMutedText,
                         fontFamily = GetFontPoppinsMedium(),
                         fontSize = 12.sp,
                     )
@@ -283,7 +286,7 @@ private fun TaskRow(
                     Checkbox(
                         checked = task.isCompleted,
                         onCheckedChange = { onToggle() },
-                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFFC85B4D)),
+                        colors = CheckboxDefaults.colors(checkedColor = AppFocusAccent),
                     )
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
                         Text(
@@ -295,11 +298,21 @@ private fun TaskRow(
                         if (isSelected && !task.isCompleted) {
                             Text(
                                 "Tarea seleccionada",
-                                color = Color(0xFFC85B4D),
+                                color = AppFocusAccent,
                                 fontFamily = GetFontPoppinsMedium(),
                                 fontSize = 11.sp
                             )
                         }
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(44.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = "Eliminar tarea: ${task.title}",
+                            tint = AppFocusAccent,
+                        )
                     }
                 }
             }
@@ -311,7 +324,7 @@ private fun TaskRow(
                     color = when {
                         isDeletePressed -> Color(0xFFAB4338)
                         isDeleteHovered -> Color(0xFFB94F43)
-                        else -> Color(0xFFC85B4D)
+                        else -> AppFocusAccent
                     },
                 ) {
                     Box(

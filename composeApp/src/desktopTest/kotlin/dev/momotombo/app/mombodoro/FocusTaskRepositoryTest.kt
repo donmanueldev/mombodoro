@@ -56,4 +56,24 @@ class FocusTaskRepositoryTest {
 
         assertFalse(reopenedRepository.loadAll().isNotEmpty())
     }
+
+    @Test
+    fun `completing and deleting selected tasks update selection atomically`() {
+        val databasePath = Files.createTempDirectory("mombodoro-task-transactions").resolve("tasks.db")
+        val repository = FocusTaskRepository.open(databasePath)
+        val first = repository.add("Primera")
+        val second = repository.add("Segunda")
+        repository.saveSelectedTaskId(first.id)
+
+        repository.updateCompletionAndSelection(first.id, isCompleted = true, selectedTaskId = null)
+
+        assertEquals(null, repository.loadSelectedTaskId())
+        assertTrue(repository.loadAll().single { it.id == first.id }.isCompleted)
+
+        repository.saveSelectedTaskId(second.id)
+        repository.deleteAndSelect(second.id, selectedTaskId = null)
+
+        assertEquals(null, repository.loadSelectedTaskId())
+        assertFalse(repository.loadAll().any { it.id == second.id })
+    }
 }

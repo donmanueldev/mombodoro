@@ -7,6 +7,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,7 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.momotombo.app.mombodoro.data.PomodoroConfiguration
-import dev.momotombo.app.mombodoro.MacNotificationStatus
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsAction
+import dev.momotombo.app.mombodoro.presentation.NotificationSettingsState
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppCanvas
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppMutedText
 import dev.momotombo.app.mombodoro.presentation.ui.theme.AppOutline
@@ -31,8 +33,8 @@ fun SettingsPanel(
     configuration: PomodoroConfiguration,
     onClose: () -> Unit,
     onSave: (PomodoroConfiguration) -> Unit,
-    notificationStatus: MacNotificationStatus?,
-    onOpenNotificationSettings: () -> Unit,
+    notificationSettings: NotificationSettingsState?,
+    onNotificationAction: (NotificationSettingsAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var draft by remember(configuration) { mutableStateOf(configuration) }
@@ -70,7 +72,7 @@ fun SettingsPanel(
             TimeSettingItem("Antes del descanso largo", draft.cyclesBeforeLongBreak, AppText, onValueChange = { value ->
                 draft = draft.copy(cyclesBeforeLongBreak = value)
             }, minValue = 1, maxValue = 10)
-            if (notificationStatus != null) {
+            if (notificationSettings != null) {
                 HorizontalDivider(Modifier.padding(vertical = 24.dp), color = AppOutline)
                 Text("Notificaciones", color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
@@ -81,18 +83,34 @@ fun SettingsPanel(
                     fontSize = 12.sp,
                 )
                 Spacer(Modifier.height(12.dp))
-                val notificationLabel = when (notificationStatus) {
-                    MacNotificationStatus.Enabled -> "Avisos activados"
-                    MacNotificationStatus.Disabled -> "Avisos desactivados"
-                    MacNotificationStatus.Checking -> "Comprobando permisos…"
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        notificationSettings.permissionLabel,
+                        modifier = Modifier.weight(1f),
+                        color = AppText,
+                        fontFamily = GetFontPoppinsSemiBold(),
+                        fontSize = 13.sp,
+                    )
+                    TextButton(
+                        enabled = notificationSettings.canTest,
+                        onClick = { onNotificationAction(NotificationSettingsAction.Test) },
+                        colors = ButtonDefaults.textButtonColors(contentColor = AppText),
+                    ) { Text("Enviar prueba", fontFamily = GetFontPoppinsSemiBold()) }
                 }
-                Text(notificationLabel, color = AppText, fontFamily = GetFontPoppinsSemiBold(), fontSize = 13.sp)
-                if (notificationStatus != MacNotificationStatus.Enabled) {
-                    Spacer(Modifier.height(10.dp))
+                notificationSettings.testResultLabel?.let { result ->
+                    Text(
+                        result,
+                        color = AppText,
+                        fontFamily = GetFontPoppinsSemiBold(),
+                        fontSize = 12.sp,
+                    )
+                }
+                if (notificationSettings.shouldOfferSystemSettings) {
+                    Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = onOpenNotificationSettings,
+                        onClick = { onNotificationAction(NotificationSettingsAction.OpenSystemSettings) },
                         colors = ButtonDefaults.buttonColors(containerColor = AppCanvas, contentColor = AppText),
-                    ) { Text("Abrir ajustes de notificaciones", fontFamily = GetFontPoppinsSemiBold()) }
+                    ) { Text("Abrir ajustes", fontFamily = GetFontPoppinsSemiBold()) }
                 }
             }
             Surface(modifier = Modifier.fillMaxWidth().padding(top = 24.dp), color = AppCanvas, shape = RoundedCornerShape(12.dp)) {

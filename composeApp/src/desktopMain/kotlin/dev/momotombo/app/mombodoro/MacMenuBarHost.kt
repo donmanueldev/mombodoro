@@ -13,6 +13,7 @@ import java.util.Base64
 import java.util.concurrent.TimeUnit
 import java.nio.file.Path
 import kotlin.io.path.exists
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class MacMenuBarAction {
     Show,
@@ -22,9 +23,15 @@ enum class MacMenuBarAction {
     NotificationPermissionGranted,
     NotificationPermissionDenied,
     NotificationDeliveryFailed,
+    NotificationTestDelivered,
+    NotificationTestDenied,
+    NotificationTestFailed,
+    HostFailed,
 }
 
 enum class MacNotificationStatus { Checking, Enabled, Disabled }
+
+enum class MacNotificationTestStatus { Idle, Testing, Delivered, Denied, Failed }
 
 /** Line protocol shared with the native macOS status-bar host. */
 internal object MacMenuBarProtocol {
@@ -42,6 +49,12 @@ internal object MacMenuBarProtocol {
         notification.message.encode(),
     ).joinToString("\t")
 
+    fun testNotificationCommand(): String = listOf(
+        "testNotification",
+        "Prueba de Mombodoro".encode(),
+        "Las notificaciones nativas funcionan correctamente.".encode(),
+    ).joinToString("\t")
+
     private fun String.encode(): String = Base64.getEncoder().encodeToString(toByteArray())
 
     private fun timerTitle(session: PomodoroSession): String = "%02d:%02d".format(
@@ -54,14 +67,24 @@ class MacMenuBarHost private constructor(private val process: Process) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val actionsChannel = Channel<MacMenuBarAction>(Channel.BUFFERED)
     private val writer = process.outputStream.bufferedWriter()
+    private val isClosing = AtomicBoolean(false)
 
     val actions: Flow<MacMenuBarAction> = actionsChannel.receiveAsFlow()
 
     init {
         scope.launch {
-            process.inputStream.bufferedReader().forEachLine { line ->
-                MacMenuBarProtocol.actionFrom(line)
-                    ?.let(actionsChannel::trySend)
+            try {
+                process.inputStream.bufferedReader().forEachLine { line ->
+                    MacMenuBarProtocol.actionFrom(line)
+                        ?.let(actionsChannel::trySend)
+                }
+            } finally {
+                if (!isClosing.get()) actionsChannel.trySend(MacMenuBarAction.HostFailed)
+            }
+        }
+        scope.launch {
+            process.errorStream.bufferedReader().forEachLine { line ->
+                System.err.println("Mombodoro notification host: $line")
             }
         }
     }
@@ -74,11 +97,16 @@ class MacMenuBarHost private constructor(private val process: Process) {
         send(MacMenuBarProtocol.notificationCommand(notification))
     }
 
+    fun testNotification() {
+        send(MacMenuBarProtocol.testNotificationCommand())
+    }
+
     fun openNotificationSettings() {
         send("openNotificationSettings")
     }
 
     fun close() {
+        isClosing.set(true)
         runCatching { writer.close() }
         terminate(process.toHandle())
         scope.cancel()
@@ -86,16 +114,19 @@ class MacMenuBarHost private constructor(private val process: Process) {
     }
 
     private fun send(command: String) {
-        runCatching {
+        try {
             writer.write(command)
             writer.newLine()
             writer.flush()
+        } catch (_: Exception) {
+            actionsChannel.trySend(MacMenuBarAction.HostFailed)
         }
     }
 
     companion object {
-        fun start(): MacMenuBarHost? {
-            val executable = MacMenuBarHostResources.executable() ?: return null
+        fun start(): Result<MacMenuBarHost> {
+            val executable = MacMenuBarHostResources.executable()
+                ?: return Result.failure(IllegalStateException("The packaged macOS notification host is unavailable."))
             return runCatching {
                 terminatePreviousHosts(executable)
                 val process = ProcessBuilder(executable).apply {
@@ -104,7 +135,7 @@ class MacMenuBarHost private constructor(private val process: Process) {
                     }
                 }.start()
                 MacMenuBarHost(process)
-            }.getOrNull()
+            }
         }
 
         /**
@@ -113,14 +144,12 @@ class MacMenuBarHost private constructor(private val process: Process) {
          * eliminamos únicamente procesos del mismo binario para mantener un solo indicador.
          */
         private fun terminatePreviousHosts(executable: String) {
-            runCatching {
-                ProcessHandle.allProcesses()
-                    .filter { handle ->
-                        handle.pid() != ProcessHandle.current().pid() &&
-                            handle.info().command().orElse(null) == executable
-                    }
-                    .forEach(::terminate)
-            }
+            ProcessHandle.allProcesses()
+                .filter { handle ->
+                    handle.pid() != ProcessHandle.current().pid() &&
+                        handle.info().command().orElse(null) == executable
+                }
+                .forEach(::terminate)
         }
 
         private fun terminate(handle: ProcessHandle) {

@@ -7,6 +7,7 @@ import dev.momotombo.app.mombodoro.data.TimerEvent
 import dev.momotombo.app.mombodoro.data.TimerSpeed
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 class ComposeAppDesktopTest {
@@ -98,6 +99,42 @@ class ComposeAppDesktopTest {
     }
 
     @Test
+    fun `completing a long break returns to focus`() {
+        val configuration = testConfiguration(cycles = 4)
+        val session = PomodoroSession.start(configuration).copy(
+            phase = Pomodoro.LONG_BREAK,
+            remainingSeconds = 1,
+            isRunning = true,
+        )
+
+        val result = session.tick()
+
+        assertEquals(Pomodoro.FOCUS, result.session.phase)
+        assertEquals(configuration.focusSeconds, result.session.remainingSeconds)
+        assertEquals(false, result.session.isRunning)
+        assertIs<TimerEvent.PhaseCompleted>(result.event)
+    }
+
+    @Test
+    fun `configuration rejects blank names and non-positive values`() {
+        assertFailsWith<IllegalArgumentException> {
+            testConfiguration(name = " ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            PomodoroConfiguration(
+                name = "Inválido",
+                focusSeconds = 0,
+                shortBreakSeconds = 1,
+                longBreakSeconds = 1,
+                cyclesBeforeLongBreak = 1,
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            testConfiguration(cycles = 0)
+        }
+    }
+
+    @Test
     fun `five minute threshold emits a warning without pausing the session`() {
         val session = PomodoroSession.start(testConfiguration()).copy(
             remainingSeconds = 5 * 60 + 1,
@@ -113,11 +150,46 @@ class ComposeAppDesktopTest {
     }
 
     @Test
+    fun `three minute threshold emits its warning`() {
+        val session = PomodoroSession.start(testConfiguration()).copy(
+            remainingSeconds = 3 * 60 + 1,
+            isRunning = true,
+        )
+
+        val result = session.tick()
+
+        val warning = assertIs<TimerEvent.TimeWarning>(result.event)
+        assertEquals(3 * 60, warning.secondsRemaining)
+        assertEquals(3 * 60, result.session.remainingSeconds)
+    }
+
+    @Test
+    fun `stopped session ignores elapsed time`() {
+        val session = PomodoroSession.start(testConfiguration())
+
+        val result = session.advanceBy(30)
+
+        assertEquals(session, result.session)
+        assertEquals(null, result.event)
+    }
+
+    @Test
+    fun `elapsed time cannot be negative`() {
+        val session = PomodoroSession.start(testConfiguration()).copy(isRunning = true)
+
+        assertFailsWith<IllegalArgumentException> {
+            session.advanceBy(-1)
+        }
+    }
+
+    @Test
     fun `pausing and continuing from shared timer state preserves the remaining time`() {
-        val state = PomodoroTimerState()
+        val clock = FakeMonotonicClock()
+        val state = PomodoroTimerState(clock)
         state.selectFocusType(testConfiguration())
 
         state.toggleRunning()
+        clock.advanceSeconds(1)
         state.tick()
         state.toggleRunning()
 
@@ -177,11 +249,20 @@ class ComposeAppDesktopTest {
         assertEquals(MacMenuBarAction.NotificationPermissionGranted, MacMenuBarProtocol.actionFrom("notificationPermissionGranted"))
         assertEquals(MacMenuBarAction.NotificationPermissionDenied, MacMenuBarProtocol.actionFrom("notificationPermissionDenied"))
         assertEquals(MacMenuBarAction.NotificationDeliveryFailed, MacMenuBarProtocol.actionFrom("notificationDeliveryFailed"))
+        assertEquals(MacMenuBarAction.NotificationTestDelivered, MacMenuBarProtocol.actionFrom("notificationTestDelivered"))
+        assertEquals(MacMenuBarAction.NotificationTestDenied, MacMenuBarProtocol.actionFrom("notificationTestDenied"))
+        assertEquals(MacMenuBarAction.NotificationTestFailed, MacMenuBarProtocol.actionFrom("notificationTestFailed"))
+        assertEquals(MacMenuBarAction.HostFailed, MacMenuBarProtocol.actionFrom("hostFailed"))
+        assertEquals(
+            "testNotification\tUHJ1ZWJhIGRlIE1vbWJvZG9ybw==\tTGFzIG5vdGlmaWNhY2lvbmVzIG5hdGl2YXMgZnVuY2lvbmFuIGNvcnJlY3RhbWVudGUu",
+            MacMenuBarProtocol.testNotificationCommand(),
+        )
     }
 
     @Test
     fun `completing a phase creates one completion notification and pauses the next phase`() {
-        val state = PomodoroTimerState()
+        val clock = FakeMonotonicClock()
+        val state = PomodoroTimerState(clock)
         state.selectFocusType(
             PomodoroConfiguration(
                 name = "Pomodoro",
@@ -192,6 +273,7 @@ class ComposeAppDesktopTest {
             )
         )
         state.toggleRunning()
+        clock.advanceSeconds(1)
 
         assertIs<TimerEvent.PhaseCompleted>(state.tick())
         assertEquals(Pomodoro.BREAK, state.session?.phase)
@@ -203,7 +285,8 @@ class ComposeAppDesktopTest {
 
     @Test
     fun `time warnings create native alerts without requiring dock attention`() {
-        val state = PomodoroTimerState()
+        val clock = FakeMonotonicClock()
+        val state = PomodoroTimerState(clock)
         state.selectFocusType(
             PomodoroConfiguration(
                 name = "Pomodoro",
@@ -214,6 +297,7 @@ class ComposeAppDesktopTest {
             )
         )
         state.toggleRunning()
+        clock.advanceSeconds(1)
 
         assertIs<TimerEvent.TimeWarning>(state.tick())
         assertEquals(false, state.notification?.requiresAttention)
@@ -221,7 +305,8 @@ class ComposeAppDesktopTest {
 
     @Test
     fun `dismissing a completion alert clears its pending attention`() {
-        val state = PomodoroTimerState()
+        val clock = FakeMonotonicClock()
+        val state = PomodoroTimerState(clock)
         state.selectFocusType(
             PomodoroConfiguration(
                 name = "Pomodoro",
@@ -232,11 +317,48 @@ class ComposeAppDesktopTest {
             )
         )
         state.toggleRunning()
+        clock.advanceSeconds(1)
         state.tick()
 
         state.dismissNotification()
 
         assertEquals(null, state.notification)
+    }
+
+    @Test
+    fun `timer catches up after the process is suspended`() {
+        val clock = FakeMonotonicClock()
+        val state = PomodoroTimerState(clock)
+        state.selectFocusType(testConfiguration())
+        state.toggleRunning()
+
+        clock.advanceSeconds(37)
+        state.tick()
+
+        assertEquals(25 * 60 - 37, state.session?.remainingSeconds)
+    }
+
+    @Test
+    fun `catching up past the deadline completes the phase once`() {
+        val clock = FakeMonotonicClock()
+        val state = PomodoroTimerState(clock)
+        state.selectFocusType(
+            PomodoroConfiguration(
+                name = "Breve",
+                focusSeconds = 5,
+                shortBreakSeconds = 60,
+                longBreakSeconds = 120,
+                cyclesBeforeLongBreak = 4,
+            )
+        )
+        state.toggleRunning()
+
+        clock.advanceSeconds(30)
+
+        assertIs<TimerEvent.PhaseCompleted>(state.tick())
+        assertEquals(Pomodoro.BREAK, state.session?.phase)
+        assertEquals(false, state.session?.isRunning)
+        assertEquals(null, state.tick())
     }
 
     private fun testConfiguration(
@@ -249,4 +371,14 @@ class ComposeAppDesktopTest {
         longBreakSeconds = 15 * 60,
         cyclesBeforeLongBreak = cycles,
     )
+
+    private class FakeMonotonicClock : MonotonicClock {
+        private var nowNanos = 0L
+
+        override fun nowNanos(): Long = nowNanos
+
+        fun advanceSeconds(seconds: Long) {
+            nowNanos += seconds * 1_000_000_000L
+        }
+    }
 }
