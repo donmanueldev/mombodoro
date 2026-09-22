@@ -31,7 +31,7 @@ final class MenuBarHost: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 guard error == nil else {
                     self.notificationAuthorization = .denied
                     self.pendingNotifications.removeAll()
-                    self.emit("notificationDeliveryFailed")
+                    self.emit("notificationPermissionDenied")
                     return
                 }
                 guard granted else {
@@ -165,7 +165,8 @@ final class MenuBarHost: NSObject, NSApplicationDelegate, UNUserNotificationCent
             DispatchQueue.main.async {
                 guard let self else { return }
                 guard error == nil else {
-                    self.emit("notificationTestFailed")
+                    self.notificationAuthorization = .denied
+                    self.emit("notificationTestDenied")
                     return
                 }
                 guard granted else {

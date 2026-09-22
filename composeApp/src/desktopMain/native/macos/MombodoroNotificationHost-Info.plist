@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>MombodoroNotificationHost</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.momotombo.Mombodoro.NotificationHost</string>
+    <string>dev.momotombo.mombodoro.NotificationHost</string>
     <key>CFBundleName</key>
     <string>Mombodoro</string>
     <key>CFBundlePackageType</key>
@@ -19,6 +19,6 @@
     <key>LSUIElement</key>
     <true/>
     <key>LSMinimumSystemVersion</key>
-    <string>11.0</string>
+    <string>@MINIMUM_SYSTEM_VERSION@</string>
 </dict>
 </plist>

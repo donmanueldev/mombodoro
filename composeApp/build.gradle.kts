@@ -2,7 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.ExperimentalComposeLibrary
 
 val isMacOS = System.getProperty("os.name") == "Mac OS X"
-val macMinimumSystemVersion = "11.0"
+val macMinimumSystemVersion = "12.0"
 val macArchitecture = when (System.getProperty("os.arch")) {
     "aarch64" -> "arm64"
     "x86_64", "amd64" -> "x86_64"
@@ -10,6 +10,14 @@ val macArchitecture = when (System.getProperty("os.arch")) {
 }
 val macSigningIdentity = providers.gradleProperty("compose.desktop.mac.signing.identity")
 val effectiveMacSigningIdentity = macSigningIdentity.orElse("-")
+val macAppStore = providers.gradleProperty("mombodoro.appStore").map(String::toBoolean).orElse(false)
+val macProvisioningProfile = providers.gradleProperty("mombodoro.provisioningProfile").orElse(
+    providers.systemProperty("user.home").map { "$it/Downloads/Mombodoro_Mac_App_Store.provisionprofile" }
+)
+val macAppStoreApplicationIdentity = providers.gradleProperty("mombodoro.appStoreApplicationIdentity")
+    .orElse("Apple Distribution: Manuel Duarte (2XUFV8QBCV)")
+val macAppStoreInstallerIdentity = providers.gradleProperty("mombodoro.appStoreInstallerIdentity")
+    .orElse("3rd Party Mac Developer Installer: Manuel Duarte (2XUFV8QBCV)")
 val applicationVersion = providers.gradleProperty("mombodoro.version").orElse("1.0.0")
 val applicationBuildNumber = providers.gradleProperty("mombodoro.buildNumber").orElse("1")
 
@@ -30,6 +38,13 @@ fun codesignCommand(
     addAll(listOf("--sign", identity, target))
 }
 
+fun appStoreCodesignCommand(target: String, entitlements: String): List<String> = listOf(
+    "codesign", "--force", "--options", "runtime", "--timestamp",
+    "--entitlements", entitlements,
+    "--sign", macAppStoreApplicationIdentity.get(),
+    target,
+)
+
 val macMenuBarHostSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarHost.swift")
 val macMenuBarProtocolSource = layout.projectDirectory.file("src/desktopMain/native/macos/MenuBarProtocol.swift")
 val macMenuBarHostInfo = layout.projectDirectory.file("src/desktopMain/native/macos/MombodoroNotificationHost-Info.plist")
@@ -37,6 +52,15 @@ val macMenuBarHostResources = layout.buildDirectory.dir("generated/mombodoroMenu
 val macMenuBarHostExecutable = layout.buildDirectory.file("MombodoroNotificationHost")
 val macMenuBarProtocolTestSource = layout.projectDirectory.file("src/desktopTest/native/macos/MenuBarProtocolTests.swift")
 val macMenuBarProtocolTestExecutable = layout.buildDirectory.file("MombodoroMenuBarProtocolTests")
+val stagedMacProvisioningProfile = layout.buildDirectory.file("generated/appStore/embedded.provisionprofile")
+
+val stageMacProvisioningProfile by tasks.registering(Copy::class) {
+    onlyIf { macAppStore.get() }
+    from(macProvisioningProfile)
+    into(stagedMacProvisioningProfile.map { it.asFile.parentFile })
+    rename { stagedMacProvisioningProfile.get().asFile.name }
+    outputs.file(stagedMacProvisioningProfile)
+}
 
 val compileMacMenuBarHost by tasks.registering(Exec::class) {
     notCompatibleWithConfigurationCache("Invokes the platform Swift toolchain.")
@@ -101,6 +125,7 @@ val assembleMacMenuBarHost by tasks.registering(Sync::class) {
         filter { line ->
             line.replace("@APP_VERSION@", applicationVersion.get())
                 .replace("@BUILD_NUMBER@", applicationBuildNumber.get())
+                .replace("@MINIMUM_SYSTEM_VERSION@", macMinimumSystemVersion)
         }
     }
     from(macMenuBarHostExecutable) {
@@ -189,10 +214,16 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("src/desktopMain/resources/Mombo.icns"))
                 dockName = "Mombodoro"
-                bundleID = "dev.momotombo.Mombodoro"
+                bundleID = "dev.momotombo.mombodoro"
                 minimumSystemVersion = macMinimumSystemVersion
                 packageBuildVersion = applicationBuildNumber.get()
                 appCategory = "public.app-category.productivity"
+                appStore = macAppStore.get()
+                if (macAppStore.get()) {
+                    entitlementsFile.set(project.file("src/desktopMain/native/macos/Mombodoro.entitlements"))
+                    runtimeEntitlementsFile.set(project.file("src/desktopMain/native/macos/MombodoroRuntime.entitlements"))
+                    provisioningProfile.set(stagedMacProvisioningProfile)
+                }
                 signing {
                     sign.set(macSigningIdentity.isPresent)
                     identity.set(macSigningIdentity)
@@ -208,6 +239,9 @@ compose.desktop {
 tasks.configureEach {
     if (isMacOS && (name == "run" || name == "prepareAppResources")) {
         dependsOn(signMacMenuBarHost)
+    }
+    if (isMacOS && name == "createDistributable") {
+        dependsOn(stageMacProvisioningProfile)
     }
 }
 
@@ -256,6 +290,107 @@ if (isMacOS) {
             finalizedBy(finalizeMacNotificationHostBundle)
         }
     }
+}
+
+val packagedMacApplication = layout.buildDirectory.dir("compose/binaries/main/app/Mombodoro.app")
+val packagedMacRuntime = packagedMacApplication.map { it.dir("Contents/runtime") }
+val packagedMacSkiko = packagedMacApplication.map { it.file("Contents/app/libskiko-macos-arm64.dylib") }
+val packagedMacNotificationHost = packagedMacApplication.map {
+    it.dir("Contents/app/resources/MombodoroNotificationHost.app")
+}
+val appStoreEntitlements = layout.projectDirectory.file("src/desktopMain/native/macos/Mombodoro.entitlements")
+val appStoreRuntimeEntitlements =
+    layout.projectDirectory.file("src/desktopMain/native/macos/MombodoroRuntime.entitlements")
+val appStorePkg = layout.buildDirectory.file(
+    applicationVersion.map { "compose/binaries/main/pkg/Mombodoro-$it.pkg" }
+)
+
+fun requireAppStoreBuild() {
+    check(macAppStore.get()) {
+        "Use -Pmombodoro.appStore=true when generating the Mac App Store package."
+    }
+}
+
+val signAppStoreRuntimeFiles by tasks.registering(Exec::class) {
+    dependsOn(finalizeMacNotificationHostBundle)
+    doFirst { requireAppStoreBuild() }
+    commandLine(
+        "find",
+        packagedMacRuntime.get().asFile.absolutePath,
+        "-type", "f",
+        "(", "-perm", "-111", "-o", "-name", "*.dylib", "-o", "-name", "*.jnilib", ")",
+        "-exec",
+        "codesign", "--force", "--options", "runtime", "--timestamp",
+        "--entitlements", appStoreRuntimeEntitlements.asFile.absolutePath,
+        "--sign", macAppStoreApplicationIdentity.get(),
+        "{}", ";",
+    )
+}
+
+val signAppStoreRuntimeBundle by tasks.registering(Exec::class) {
+    dependsOn(signAppStoreRuntimeFiles)
+    commandLine(appStoreCodesignCommand(
+        packagedMacRuntime.get().asFile.absolutePath,
+        appStoreRuntimeEntitlements.asFile.absolutePath,
+    ))
+}
+
+val signAppStoreSkiko by tasks.registering(Exec::class) {
+    dependsOn(signAppStoreRuntimeBundle)
+    commandLine(appStoreCodesignCommand(
+        packagedMacSkiko.get().asFile.absolutePath,
+        appStoreRuntimeEntitlements.asFile.absolutePath,
+    ))
+}
+
+val signAppStoreNotificationHost by tasks.registering(Exec::class) {
+    dependsOn(signAppStoreSkiko)
+    commandLine(appStoreCodesignCommand(
+        packagedMacNotificationHost.get().asFile.absolutePath,
+        appStoreRuntimeEntitlements.asFile.absolutePath,
+    ))
+}
+
+val signAppStoreApplication by tasks.registering(Exec::class) {
+    dependsOn(signAppStoreNotificationHost)
+    commandLine(appStoreCodesignCommand(
+        packagedMacApplication.get().asFile.absolutePath,
+        appStoreEntitlements.asFile.absolutePath,
+    ))
+}
+
+val verifyAppStoreApplication by tasks.registering(Exec::class) {
+    dependsOn(signAppStoreApplication)
+    commandLine(
+        "codesign", "--verify", "--deep", "--strict", "--verbose=4",
+        packagedMacApplication.get().asFile.absolutePath,
+    )
+}
+
+val packageAppStorePkg by tasks.registering(Exec::class) {
+    dependsOn(verifyAppStoreApplication)
+    val outputFile = appStorePkg.get().asFile
+    doFirst {
+        requireAppStoreBuild()
+        outputFile.parentFile.mkdirs()
+        outputFile.delete()
+    }
+    commandLine(
+        "productbuild",
+        "--component", packagedMacApplication.get().asFile.absolutePath,
+        "/Applications",
+        "--sign", macAppStoreInstallerIdentity.get(),
+        outputFile.absolutePath,
+    )
+}
+
+val verifyAppStorePkg by tasks.registering(Exec::class) {
+    dependsOn(packageAppStorePkg)
+    commandLine("pkgutil", "--check-signature", appStorePkg.get().asFile.absolutePath)
+}
+
+packageAppStorePkg {
+    finalizedBy(verifyAppStorePkg)
 }
 
 val verifyMacNotificationHostBundle by tasks.registering(Exec::class) {
